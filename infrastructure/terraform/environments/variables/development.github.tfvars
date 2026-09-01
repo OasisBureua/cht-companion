@@ -32,7 +32,7 @@ companion_task_cpu                 = 512
 companion_task_memory              = 1024
 companion_desired_count            = 1
 companion_min_capacity             = 1
-companion_max_capacity             = 2
+companion_max_capacity             = 1
 companion_enable_scheduled_scaling = true
 
 kb_schedule_expression = "rate(1 day)"

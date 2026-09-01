@@ -8,7 +8,8 @@ terraform {
 }
 
 locals {
-  prefix = var.resource_prefix
+  prefix               = var.resource_prefix
+  database_secret_name = "${local.prefix}-database-secrets"
 }
 
 resource "aws_db_subnet_group" "main" {
@@ -114,13 +115,13 @@ resource "aws_db_instance" "main" {
 }
 
 resource "aws_secretsmanager_secret" "database" {
-  name                    = "${local.prefix}/database"
+  name                    = local.database_secret_name
   description             = "cht-companion database connection"
   recovery_window_in_days = var.environment == "prod" ? 30 : 0
   kms_key_id              = var.kms_key_arn
 
   tags = {
-    Name        = "${local.prefix}-database-secrets"
+    Name        = local.database_secret_name
     Environment = var.environment
   }
 }

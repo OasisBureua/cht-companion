@@ -1,6 +1,6 @@
 locals {
   prefix = var.resource_prefix
-  database_secret_arn_pattern = "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:${local.prefix}/database-*"
+  database_secret_arn_pattern = "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:${local.prefix}-database-secrets-*"
 }
 
 data "aws_iam_policy_document" "ecs_task_assume" {
@@ -38,7 +38,7 @@ resource "aws_iam_role_policy_attachment" "ecs_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# CMK-encrypted secret cht-dev-companion/database (or cht-companion/database in prod).
+# CMK-encrypted secret cht-dev-companion-database-secrets (or cht-companion-database-secrets in prod).
 resource "aws_iam_role_policy" "ecs_execution_secrets" {
   name = "${local.prefix}-ecs-execution-secrets"
   role = aws_iam_role.ecs_execution.id
