@@ -123,8 +123,10 @@ resource "aws_ecs_service" "companion" {
     }
   }
 
-  deployment_maximum_percent         = 100
-  deployment_minimum_healthy_percent = local.is_prod ? 50 : 100
+  # Dev (desired=1): min 0 + max 100 keeps at most one task (brief gap on deploy).
+  # Prod: min 50 + max 200 allows rolling deploy without downtime.
+  deployment_maximum_percent         = local.is_prod ? 200 : 100
+  deployment_minimum_healthy_percent = local.is_prod ? 50 : 0
 
   deployment_circuit_breaker {
     enable   = true

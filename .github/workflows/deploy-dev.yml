@@ -233,16 +233,6 @@ jobs:
         working-directory: ${{ env.TF_ENV_DIR }}
         run: terraform init -reconfigure -backend-config="${{ env.TF_BACKEND_CONFIG }}"
 
-      - name: Import existing ECR repos (idempotent)
-        if: needs.changes.outputs.deploy_infra == 'true'
-        working-directory: ${{ env.TF_ENV_DIR }}
-        continue-on-error: true
-        run: |
-          terraform import -var-file="${{ env.TF_VARS_FILE }}" \
-            'module.ecr.aws_ecr_repository.companion' cht-dev-companion || true
-          terraform import -var-file="${{ env.TF_VARS_FILE }}" \
-            'module.ecr.aws_ecr_repository.companion_kb' cht-dev-companion-kb || true
-
       - name: Terraform plan
         if: needs.changes.outputs.deploy_infra == 'true'
         working-directory: ${{ env.TF_ENV_DIR }}
