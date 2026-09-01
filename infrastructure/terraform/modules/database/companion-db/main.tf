@@ -120,7 +120,7 @@ resource "aws_secretsmanager_secret" "database" {
   kms_key_id              = var.kms_key_arn
 
   tags = {
-    Name        = "${local.prefix}/database"
+    Name        = "${local.prefix}-database-secrets"
     Environment = var.environment
   }
 }
