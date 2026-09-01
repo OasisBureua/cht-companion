@@ -1,0 +1,36 @@
+# cht-companion development (devapp)
+# Copy to development.tfvars for local plan/apply.
+# Secrets: GitHub Environment "development" -> TF_VAR_internal_api_secret
+
+environment = "development"
+aws_region  = "us-east-1"
+
+# Shared platform stack (cht-platform-tool dev)
+platform_vpc_name                      = "cht-dev-vpc"
+ecs_cluster_name                       = "cht-dev-cluster"
+platform_backend_security_group_name   = "cht-dev-backend-sg"
+service_connect_namespace_name         = "cht-dev.local"
+
+companion_ecr_repository_name = "cht-dev-companion"
+kb_ecr_repository_name        = "cht-dev-companion-kb"
+
+companion_image = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion:1.0.0"
+kb_image        = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion-kb:1.0.0"
+
+db_instance_class    = "db.t4g.small"
+db_engine_version    = "16.6"
+db_allocated_storage = 20
+db_multi_az          = false
+db_backup_retention_period = 1
+
+companion_task_cpu                   = 512
+companion_task_memory                = 1024
+companion_desired_count              = 1
+companion_min_capacity               = 1
+companion_max_capacity               = 2
+companion_enable_scheduled_scaling   = true
+
+kb_schedule_expression = "rate(1 day)"
+
+# Required secret — set via TF_VAR_internal_api_secret or inline locally only
+internal_api_secret = "REPLACE_ME"

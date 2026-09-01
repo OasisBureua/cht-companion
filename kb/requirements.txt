@@ -1,0 +1,5 @@
+boto3==1.43.14
+botocore==1.43.14
+psycopg2-binary==2.9.12
+python-dotenv==1.2.2
+pytest==8.3.4

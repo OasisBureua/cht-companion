@@ -1,0 +1,64 @@
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to rollback'
+        required: true
+        type: choice
+        options:
+          - prod
+          - development
+      image_tag:
+        description: 'Image tag to rollback to'
+        required: true
+        type: string
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 233636046512.dkr.ecr.us-east-1.amazonaws.com
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  rollback:
+    name: Rollback cht-companion
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment == 'prod' && 'prod' || 'development' }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Set targets
+        id: targets
+        run: |
+          if [ "${{ inputs.environment }}" = "prod" ]; then
+            echo "cluster=cht-platform-cluster" >> $GITHUB_OUTPUT
+            echo "service=cht-companion" >> $GITHUB_OUTPUT
+            echo "repo=cht-companion" >> $GITHUB_OUTPUT
+          else
+            echo "cluster=cht-dev-cluster" >> $GITHUB_OUTPUT
+            echo "service=cht-dev-companion" >> $GITHUB_OUTPUT
+            echo "repo=cht-dev-companion" >> $GITHUB_OUTPUT
+          fi
+      - name: Roll back ECS
+        env:
+          CLUSTER: ${{ steps.targets.outputs.cluster }}
+          SERVICE: ${{ steps.targets.outputs.service }}
+          IMAGE: ${{ env.ECR_REGISTRY }}/${{ steps.targets.outputs.repo }}:${{ inputs.image_tag }}
+        run: |
+          TASK_DEF=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" --query 'services[0].taskDefinition' --output text)
+          aws ecs describe-task-definition --task-definition "$TASK_DEF" --query 'taskDefinition' > task-def.json
+          jq --arg IMAGE "$IMAGE" \
+            'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
+             | .containerDefinitions = (.containerDefinitions | map(.image = $IMAGE))' \
+            task-def.json > new-task-def.json
+          NEW=$(aws ecs register-task-definition --cli-input-json file://new-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
+          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" --task-definition "$NEW" --force-new-deployment
+          aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"

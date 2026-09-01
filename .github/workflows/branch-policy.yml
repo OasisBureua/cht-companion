@@ -1,0 +1,53 @@
+# Enforce: pull requests targeting main must come from release/* or hotfix/* branches.
+
+name: Branch policy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  main-from-release-only:
+    name: main-from-release-only
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify PR head branch
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [[ "$HEAD_REF" =~ ^release/ ]]; then
+            echo "✓ PR from release branch: $HEAD_REF"
+            exit 0
+          fi
+          if [[ "$HEAD_REF" =~ ^hotfix/ ]]; then
+            echo "✓ PR from hotfix branch: $HEAD_REF"
+            exit 0
+          fi
+          echo "::error::Pull requests to main must come from a release/* or hotfix/* branch (e.g. release/v1.0.0, hotfix/test-fixes). Head branch: ${HEAD_REF:-<unknown>}"
+          exit 1
+
+  release-contains-develop:
+    name: release-contains-develop
+    runs-on: ubuntu-latest
+    if: startsWith(github.head_ref, 'release/')
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify release branch is based on develop
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          git fetch origin develop
+          if git merge-base --is-ancestor origin/develop "origin/${HEAD_REF}"; then
+            echo "✓ origin/develop is an ancestor of origin/${HEAD_REF}"
+          else
+            echo "::error::Release branch must be created from (or include) develop. Re-create: git checkout develop && git pull && git checkout -b ${HEAD_REF}"
+            exit 1
+          fi
