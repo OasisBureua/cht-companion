@@ -176,11 +176,11 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        if: needs.changes.outputs.deploy_backend == 'true' || needs.changes.outputs.deploy_kb == 'true'
+        if: needs.changes.outputs.deploy_backend == 'true' || needs.changes.outputs.deploy_kb == 'true' || needs.changes.outputs.deploy_infra == 'true'
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Generate image tag
-        if: needs.changes.outputs.deploy_backend == 'true' || needs.changes.outputs.deploy_kb == 'true'
+        if: needs.changes.outputs.deploy_backend == 'true' || needs.changes.outputs.deploy_kb == 'true' || needs.changes.outputs.deploy_infra == 'true'
         id: meta
         run: |
           chmod +x scripts/next-dev-image-tag.sh
@@ -188,7 +188,7 @@ jobs:
           echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
-        if: needs.changes.outputs.deploy_backend == 'true' || needs.changes.outputs.deploy_kb == 'true'
+        if: needs.changes.outputs.deploy_backend == 'true' || needs.changes.outputs.deploy_kb == 'true' || needs.changes.outputs.deploy_infra == 'true'
         uses: docker/setup-buildx-action@v4
 
       - name: Build and push backend image
@@ -197,6 +197,9 @@ jobs:
         with:
           context: ./backend
           push: true
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_BACKEND_REPO }}:${{ steps.meta.outputs.image_tag }}
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_BACKEND_REPO }}:dev-latest
@@ -204,11 +207,14 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push kb image
-        if: needs.changes.outputs.deploy_kb == 'true'
+        if: needs.changes.outputs.deploy_kb == 'true' || needs.changes.outputs.deploy_infra == 'true'
         uses: docker/build-push-action@v7
         with:
           context: ./kb
           push: true
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:dev-latest
