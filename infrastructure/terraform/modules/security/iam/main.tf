@@ -1,5 +1,6 @@
 locals {
   prefix = var.resource_prefix
+  database_secret_arn_pattern = "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:${local.prefix}/database-*"
 }
 
 data "aws_iam_policy_document" "ecs_task_assume" {
@@ -35,6 +36,41 @@ resource "aws_iam_role" "ecs_execution" {
 resource "aws_iam_role_policy_attachment" "ecs_execution" {
   role       = aws_iam_role.ecs_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# CMK-encrypted secret cht-dev-companion/database (or cht-companion/database in prod).
+resource "aws_iam_role_policy" "ecs_execution_secrets" {
+  name = "${local.prefix}-ecs-execution-secrets"
+  role = aws_iam_role.ecs_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret",
+        ]
+        Resource = local.database_secret_arn_pattern
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey",
+        ]
+        Resource = [var.kms_key_arn]
+      },
+    ]
+  })
+}
+
+resource "aws_kms_grant" "ecs_execution_secrets" {
+  name              = "${local.prefix}-ecs-execution-secrets"
+  key_id            = var.kms_key_arn
+  grantee_principal = aws_iam_role.ecs_execution.arn
+  operations        = ["Decrypt", "DescribeKey"]
 }
 
 resource "aws_iam_role" "ecs_task" {
