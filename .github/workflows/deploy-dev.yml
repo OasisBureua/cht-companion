@@ -246,6 +246,14 @@ jobs:
         working-directory: ${{ env.TF_ENV_DIR }}
         run: terraform apply -auto-approve tfplan
 
+      - name: Wait for ECS service stable
+        if: needs.changes.outputs.deploy_infra == 'true' && github.event.inputs.plan_only != 'true'
+        run: |
+          aws ecs wait services-stable \
+            --cluster cht-dev-cluster \
+            --services cht-dev-companion \
+            --region "$AWS_REGION"
+
       - name: Update ECS service
         if: needs.changes.outputs.deploy_backend == 'true' && github.event.inputs.plan_only != 'true'
         env:
