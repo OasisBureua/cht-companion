@@ -16,7 +16,7 @@ companion_image = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-companion:1.
 kb_image        = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-companion-kb:1.0.0"
 
 db_instance_class          = "db.t4g.small"
-db_engine_version          = "16.6"
+db_engine_version          = "16.9"
 db_allocated_storage       = 50
 db_multi_az                = true
 db_backup_retention_period = 14

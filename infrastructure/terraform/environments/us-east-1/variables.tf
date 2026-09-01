@@ -88,7 +88,7 @@ variable "kb_ecr_repository_name" {
 # Database
 variable "db_engine_version" {
   type    = string
-  default = "16.6"
+  default = "16.9"
 }
 
 variable "db_instance_class" {

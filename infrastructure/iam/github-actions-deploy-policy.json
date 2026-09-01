@@ -51,7 +51,9 @@
         "ecr:DeleteLifecyclePolicy",
         "ecr:CreateRepository",
         "ecr:DeleteRepository",
-        "ecr:SetRepositoryPolicy"
+        "ecr:SetRepositoryPolicy",
+        "ecr:PutImageScanningConfiguration",
+        "ecr:GetImageScanningConfiguration"
       ],
       "Resource": [
         "arn:aws:ecr:us-east-1:233636046512:repository/cht-companion",
