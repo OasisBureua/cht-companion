@@ -4,16 +4,24 @@
 environment = "development"
 aws_region  = "us-east-1"
 
+# Platform stack (cht-platform-tool dev) — pin IDs so subnet lookup does not depend on Tier tags
+platform_vpc_id = "vpc-095c20b7e874013f2"
+platform_private_subnet_ids = [
+  "subnet-02ec72146e3abf115",
+  "subnet-0a9d1329fbf64dbfb",
+]
+
 platform_vpc_name                    = "cht-dev-vpc"
 ecs_cluster_name                     = "cht-dev-cluster"
 platform_backend_security_group_name = "cht-dev-backend-sg"
+platform_backend_security_group_ids  = ["sg-0363efdc457aa7341"]
 service_connect_namespace_name       = "cht-dev.local"
 
 companion_ecr_repository_name = "cht-dev-companion"
 kb_ecr_repository_name        = "cht-dev-companion-kb"
 
-companion_image = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion:1.0.0"
-kb_image        = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion-kb:1.0.0"
+companion_image = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion:dev-latest"
+kb_image        = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion-kb:dev-latest"
 
 db_instance_class          = "db.t4g.small"
 db_engine_version          = "16.6"

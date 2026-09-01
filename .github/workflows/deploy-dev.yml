@@ -31,6 +31,10 @@ env:
   ECR_BACKEND_REPO: cht-dev-companion
   ECR_WORKER_REPO: cht-dev-companion-kb
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  TERRAFORM_VERSION: 1.10.5
+  TF_ENV_DIR: infrastructure/terraform/environments/us-east-1
+  TF_BACKEND_CONFIG: ../backends/us-east-1-development.hcl
+  TF_VARS_FILE: ../variables/development.github.tfvars
 
 permissions:
   id-token: write
@@ -133,11 +137,24 @@ jobs:
           pip install -r requirements.txt
           pytest
 
+      - name: Setup Terraform
+        if: needs.changes.outputs.deploy_infra == 'true'
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Terraform validate
+        if: needs.changes.outputs.deploy_infra == 'true'
+        working-directory: ${{ env.TF_ENV_DIR }}
+        run: |
+          terraform init -backend=false
+          terraform validate
+
   deploy:
     name: Deploy to dev
     runs-on: ubuntu-latest
     needs: [changes, test]
-    if: needs.changes.outputs.deploy_backend == 'true' || needs.changes.outputs.deploy_kb == 'true'
+    if: needs.changes.outputs.deploy_backend == 'true' || needs.changes.outputs.deploy_kb == 'true' || needs.changes.outputs.deploy_infra == 'true'
     environment: development
     steps:
       - name: Checkout code
@@ -150,6 +167,7 @@ jobs:
           echo "|------|-----|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Backend (ECS cht-companion) | ${{ needs.changes.outputs.deploy_backend }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| KB (Lambda cht-companion-kb) | ${{ needs.changes.outputs.deploy_kb }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Infra (Terraform plan/apply) | ${{ needs.changes.outputs.deploy_infra }} |" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v6
@@ -158,9 +176,11 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
+        if: needs.changes.outputs.deploy_backend == 'true' || needs.changes.outputs.deploy_kb == 'true'
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Generate image tag
+        if: needs.changes.outputs.deploy_backend == 'true' || needs.changes.outputs.deploy_kb == 'true'
         id: meta
         run: |
           chmod +x scripts/next-dev-image-tag.sh
@@ -168,6 +188,7 @@ jobs:
           echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
+        if: needs.changes.outputs.deploy_backend == 'true' || needs.changes.outputs.deploy_kb == 'true'
         uses: docker/setup-buildx-action@v4
 
       - name: Build and push backend image
@@ -194,24 +215,83 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Update ECS service
-        if: needs.changes.outputs.deploy_backend == 'true' && github.event.inputs.plan_only != 'true'
+      - name: Setup Terraform
+        if: needs.changes.outputs.deploy_infra == 'true'
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Verify Terraform secrets
+        if: needs.changes.outputs.deploy_infra == 'true'
+        env:
+          TF_VAR_internal_api_secret: ${{ secrets.INTERNAL_API_SECRET }}
+        run: |
+          if [ -z "${TF_VAR_internal_api_secret}" ]; then
+            echo "::error::GitHub Environment 'development' is missing INTERNAL_API_SECRET (shared BFF -> companion secret)."
+            exit 1
+          fi
+
+      - name: Terraform init
+        if: needs.changes.outputs.deploy_infra == 'true'
+        working-directory: ${{ env.TF_ENV_DIR }}
+        run: terraform init -reconfigure -backend-config="${{ env.TF_BACKEND_CONFIG }}"
+
+      - name: Import existing ECR repos (idempotent)
+        if: needs.changes.outputs.deploy_infra == 'true'
+        working-directory: ${{ env.TF_ENV_DIR }}
         continue-on-error: true
         run: |
-          IMAGE="${{ env.ECR_REGISTRY }}/${{ env.ECR_BACKEND_REPO }}:${{ steps.meta.outputs.image_tag }}"
-          if ! aws ecs describe-services --cluster cht-dev-cluster --services cht-dev-companion --region "$AWS_REGION" --query 'services[0].status' --output text | grep -q ACTIVE; then
-            echo "ECS service cht-dev-companion not provisioned yet (infra ticket)."
+          terraform import -var-file="${{ env.TF_VARS_FILE }}" \
+            -var="internal_api_secret=${{ secrets.INTERNAL_API_SECRET }}" \
+            'module.ecr.aws_ecr_repository.companion' cht-dev-companion || true
+          terraform import -var-file="${{ env.TF_VARS_FILE }}" \
+            -var="internal_api_secret=${{ secrets.INTERNAL_API_SECRET }}" \
+            'module.ecr.aws_ecr_repository.companion_kb' cht-dev-companion-kb || true
+
+      - name: Terraform plan
+        if: needs.changes.outputs.deploy_infra == 'true'
+        working-directory: ${{ env.TF_ENV_DIR }}
+        env:
+          TF_VAR_internal_api_secret: ${{ secrets.INTERNAL_API_SECRET }}
+        run: |
+          terraform plan \
+            -var-file="${{ env.TF_VARS_FILE }}" \
+            -out=tfplan
+
+      - name: Terraform apply
+        if: needs.changes.outputs.deploy_infra == 'true' && github.event.inputs.plan_only != 'true'
+        working-directory: ${{ env.TF_ENV_DIR }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: Update ECS service
+        if: needs.changes.outputs.deploy_backend == 'true' && github.event.inputs.plan_only != 'true'
+        env:
+          CLUSTER: cht-dev-cluster
+          SERVICE: cht-dev-companion
+          IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.ECR_BACKEND_REPO }}:${{ steps.meta.outputs.image_tag }}
+        run: |
+          STATUS="$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" --region "$AWS_REGION" --query 'services[0].status' --output text 2>/dev/null || echo MISSING)"
+          if [ "$STATUS" != "ACTIVE" ]; then
+            echo "ECS service $SERVICE not active yet (status=$STATUS)."
             exit 0
           fi
-          echo "Would roll ECS to $IMAGE once the service exists."
+          TASK_DEF="$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" --query 'services[0].taskDefinition' --output text)"
+          aws ecs describe-task-definition --task-definition "$TASK_DEF" --query 'taskDefinition' > task-def.json
+          jq --arg IMAGE "$IMAGE" \
+            'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
+             | .containerDefinitions = (.containerDefinitions | map(.image = $IMAGE))' \
+            task-def.json > new-task-def.json
+          NEW_ARN="$(aws ecs register-task-definition --cli-input-json file://new-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)"
+          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" --task-definition "$NEW_ARN" --force-new-deployment --region "$AWS_REGION"
+          aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE" --region "$AWS_REGION"
 
       - name: Update Lambda
         if: needs.changes.outputs.deploy_kb == 'true' && github.event.inputs.plan_only != 'true'
-        continue-on-error: true
         run: |
           IMAGE="${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}"
           if ! aws lambda get-function --function-name cht-dev-companion-kb --region "$AWS_REGION" >/dev/null 2>&1; then
-            echo "Lambda cht-dev-companion-kb not provisioned yet (infra ticket)."
+            echo "Lambda cht-dev-companion-kb not provisioned yet."
             exit 0
           fi
           aws lambda update-function-code --function-name cht-dev-companion-kb --image-uri "$IMAGE" --region "$AWS_REGION"

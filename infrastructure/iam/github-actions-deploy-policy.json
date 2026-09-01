@@ -2,9 +2,31 @@
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "DenyDangerousIAM",
+      "Effect": "Deny",
+      "Action": [
+        "iam:CreateUser",
+        "iam:DeleteUser",
+        "iam:CreateAccessKey",
+        "iam:DeleteAccessKey",
+        "iam:UpdateAccessKey",
+        "iam:CreateLoginProfile",
+        "iam:UpdateLoginProfile",
+        "iam:DeleteLoginProfile",
+        "iam:AttachUserPolicy",
+        "iam:DetachUserPolicy",
+        "iam:PutUserPolicy",
+        "iam:DeleteUserPolicy"
+      ],
+      "Resource": "*"
+    },
+    {
       "Sid": "ECRAuth",
       "Effect": "Allow",
-      "Action": ["ecr:GetAuthorizationToken"],
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ecr:DescribeRegistry"
+      ],
       "Resource": "*"
     },
     {
@@ -20,13 +42,143 @@
         "ecr:GetDownloadUrlForLayer",
         "ecr:DescribeRepositories",
         "ecr:DescribeImages",
-        "ecr:ListImages"
+        "ecr:ListImages",
+        "ecr:ListTagsForResource",
+        "ecr:TagResource",
+        "ecr:UntagResource",
+        "ecr:PutLifecyclePolicy",
+        "ecr:GetLifecyclePolicy",
+        "ecr:DeleteLifecyclePolicy",
+        "ecr:CreateRepository",
+        "ecr:DeleteRepository",
+        "ecr:SetRepositoryPolicy"
       ],
       "Resource": [
         "arn:aws:ecr:us-east-1:233636046512:repository/cht-companion",
         "arn:aws:ecr:us-east-1:233636046512:repository/cht-companion-kb",
         "arn:aws:ecr:us-east-1:233636046512:repository/cht-dev-companion",
         "arn:aws:ecr:us-east-1:233636046512:repository/cht-dev-companion-kb"
+      ]
+    },
+    {
+      "Sid": "TerraformState",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket",
+        "s3:GetBucketVersioning",
+        "s3:GetEncryptionConfiguration"
+      ],
+      "Resource": [
+        "arn:aws:s3:::cht-companion-terraform-state",
+        "arn:aws:s3:::cht-companion-terraform-state/*"
+      ]
+    },
+    {
+      "Sid": "DeployIAMRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:UpdateRole",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:ListInstanceProfilesForRole",
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:CreatePolicy",
+        "iam:DeletePolicy",
+        "iam:CreatePolicyVersion",
+        "iam:DeletePolicyVersion",
+        "iam:ListPolicyVersions",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:TagPolicy",
+        "iam:UntagPolicy",
+        "iam:PassRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::233636046512:role/cht-dev-companion*",
+        "arn:aws:iam::233636046512:role/cht-companion*",
+        "arn:aws:iam::233636046512:policy/cht-dev-companion*",
+        "arn:aws:iam::233636046512:policy/cht-companion*",
+        "arn:aws:iam::233636046512:policy/GitHubActions-CHT-Companion-Deploy"
+      ]
+    },
+    {
+      "Sid": "ServiceLinkedRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateServiceLinkedRole",
+        "iam:GetServiceLinkedRoleDeletionStatus"
+      ],
+      "Resource": "arn:aws:iam::233636046512:role/aws-service-role/*",
+      "Condition": {
+        "StringEquals": {
+          "iam:AWSServiceName": [
+            "rds.amazonaws.com",
+            "elasticloadbalancing.amazonaws.com",
+            "ecs.amazonaws.com",
+            "autoscaling.amazonaws.com",
+            "lambda.amazonaws.com",
+            "events.amazonaws.com",
+            "sqs.amazonaws.com"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "TerraformInfrastructure",
+      "Effect": "Allow",
+      "Action": [
+        "application-autoscaling:*",
+        "cloudwatch:*",
+        "ec2:Describe*",
+        "ec2:CreateSecurityGroup",
+        "ec2:DeleteSecurityGroup",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:CreateTags",
+        "ec2:DeleteTags",
+        "ecs:*",
+        "events:*",
+        "kms:*",
+        "lambda:*",
+        "logs:*",
+        "rds:*",
+        "secretsmanager:*",
+        "servicediscovery:*",
+        "sqs:*",
+        "sts:GetCallerIdentity",
+        "tag:GetResources"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DeployLogsRead",
+      "Effect": "Allow",
+      "Action": [
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams",
+        "logs:GetLogEvents",
+        "logs:FilterLogEvents"
+      ],
+      "Resource": [
+        "arn:aws:logs:us-east-1:233636046512:log-group:/ecs/cht-dev-companion*",
+        "arn:aws:logs:us-east-1:233636046512:log-group:/ecs/cht-companion*",
+        "arn:aws:logs:us-east-1:233636046512:log-group:/aws/lambda/cht-dev-companion*",
+        "arn:aws:logs:us-east-1:233636046512:log-group:/aws/lambda/cht-companion*"
       ]
     }
   ]
