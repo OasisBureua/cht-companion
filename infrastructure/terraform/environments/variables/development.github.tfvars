@@ -1,5 +1,4 @@
 # Non-secret infra for GitHub Actions deploy-dev.yml (committed).
-# Secrets: GitHub Environment "development" -> TF_VAR_internal_api_secret
 
 environment = "development"
 aws_region  = "us-east-1"
@@ -37,5 +36,3 @@ companion_max_capacity             = 2
 companion_enable_scheduled_scaling = true
 
 kb_schedule_expression = "rate(1 day)"
-
-internal_api_secret = "github-actions-placeholder"

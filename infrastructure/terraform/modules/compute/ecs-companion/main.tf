@@ -68,10 +68,6 @@ resource "aws_ecs_task_definition" "companion" {
           name      = "DATABASE_URL"
           valueFrom = "${var.database_secret_arn}:url::"
         },
-        {
-          name      = "INTERNAL_API_SECRET"
-          valueFrom = "${var.app_secrets_arn}:internal_api_secret::"
-        },
       ]
 
       logConfiguration = {

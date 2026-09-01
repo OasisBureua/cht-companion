@@ -222,16 +222,6 @@ jobs:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
 
-      - name: Verify Terraform secrets
-        if: needs.changes.outputs.deploy_infra == 'true'
-        env:
-          TF_VAR_internal_api_secret: ${{ secrets.INTERNAL_API_SECRET }}
-        run: |
-          if [ -z "${TF_VAR_internal_api_secret}" ]; then
-            echo "::error::GitHub Environment 'development' is missing INTERNAL_API_SECRET (shared BFF -> companion secret)."
-            exit 1
-          fi
-
       - name: Terraform init
         if: needs.changes.outputs.deploy_infra == 'true'
         working-directory: ${{ env.TF_ENV_DIR }}
@@ -243,17 +233,13 @@ jobs:
         continue-on-error: true
         run: |
           terraform import -var-file="${{ env.TF_VARS_FILE }}" \
-            -var="internal_api_secret=${{ secrets.INTERNAL_API_SECRET }}" \
             'module.ecr.aws_ecr_repository.companion' cht-dev-companion || true
           terraform import -var-file="${{ env.TF_VARS_FILE }}" \
-            -var="internal_api_secret=${{ secrets.INTERNAL_API_SECRET }}" \
             'module.ecr.aws_ecr_repository.companion_kb' cht-dev-companion-kb || true
 
       - name: Terraform plan
         if: needs.changes.outputs.deploy_infra == 'true'
         working-directory: ${{ env.TF_ENV_DIR }}
-        env:
-          TF_VAR_internal_api_secret: ${{ secrets.INTERNAL_API_SECRET }}
         run: |
           terraform plan \
             -var-file="${{ env.TF_VARS_FILE }}" \

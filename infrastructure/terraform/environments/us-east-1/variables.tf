@@ -147,9 +147,3 @@ variable "kb_schedule_expression" {
   type    = string
   default = "rate(1 day)"
 }
-
-# Secrets (GitHub Environment -> TF_VAR_internal_api_secret)
-variable "internal_api_secret" {
-  type      = string
-  sensitive = true
-}

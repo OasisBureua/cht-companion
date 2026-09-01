@@ -31,10 +31,10 @@ Change base matches cht-platform-tool: push `before` SHA, last successful run, m
 
 Create two environments under **Settings → Environments**:
 
-| Environment | Workflows | Secrets (now) | Secrets (when Terraform apply is wired) |
-|-------------|-----------|---------------|----------------------------------------|
-| **`development`** | `deploy-dev.yml`, `rollback.yml` (dev) | `AWS_ROLE_ARN` | `TF_VAR_internal_api_secret` |
-| **`prod`** | `deploy-prod.yml`, `rollback.yml` (prod) | `AWS_ROLE_ARN` | `TF_VAR_internal_api_secret` |
+| Environment | Workflows | Secrets |
+|-------------|-----------|---------|
+| **`development`** | `deploy-dev.yml`, `rollback.yml` (dev) | `AWS_ROLE_ARN` |
+| **`prod`** | `deploy-prod.yml`, `rollback.yml` (prod) | `AWS_ROLE_ARN` |
 
 ### One-time AWS setup
 

@@ -31,11 +31,6 @@ output "companion_database_secret_arn" {
   sensitive = true
 }
 
-output "companion_app_secrets_arn" {
-  value     = module.secrets.app_secrets_arn
-  sensitive = true
-}
-
 output "kb_lambda_function_name" {
   value = module.kb_lambda.lambda_function_name
 }

@@ -66,10 +66,6 @@ variable "database_secret_arn" {
   type = string
 }
 
-variable "app_secrets_arn" {
-  type = string
-}
-
 variable "task_cpu" {
   type    = number
   default = 512

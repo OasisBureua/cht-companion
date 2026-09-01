@@ -1,6 +1,5 @@
 # cht-companion development (devapp)
 # Copy to development.tfvars for local plan/apply.
-# Secrets: GitHub Environment "development" -> TF_VAR_internal_api_secret
 
 environment = "development"
 aws_region  = "us-east-1"
@@ -31,6 +30,3 @@ companion_max_capacity               = 2
 companion_enable_scheduled_scaling   = true
 
 kb_schedule_expression = "rate(1 day)"
-
-# Required secret — set via TF_VAR_internal_api_secret or inline locally only
-internal_api_secret = "REPLACE_ME"

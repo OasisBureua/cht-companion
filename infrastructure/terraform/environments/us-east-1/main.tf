@@ -123,15 +123,6 @@ module "ecr" {
   kb_repository_name        = var.kb_ecr_repository_name
 }
 
-module "secrets" {
-  source = "../../modules/security/secrets"
-
-  resource_prefix     = local.resource_prefix
-  environment         = var.environment
-  kms_key_arn         = aws_kms_key.companion.arn
-  internal_api_secret = var.internal_api_secret
-}
-
 module "companion_db" {
   source = "../../modules/database/companion-db"
 
@@ -156,7 +147,6 @@ module "iam" {
   aws_account_id  = data.aws_caller_identity.current.account_id
   kms_key_arn     = aws_kms_key.companion.arn
   secret_arns = [
-    module.secrets.app_secrets_arn,
     module.companion_db.database_secret_arn,
   ]
 }
@@ -179,7 +169,6 @@ module "ecs_companion" {
   log_group_name                      = aws_cloudwatch_log_group.companion.name
   container_image                     = var.companion_image
   database_secret_arn                 = module.companion_db.database_secret_arn
-  app_secrets_arn                     = module.secrets.app_secrets_arn
   task_cpu                            = var.companion_task_cpu
   task_memory                         = var.companion_task_memory
   desired_count                       = var.companion_desired_count
