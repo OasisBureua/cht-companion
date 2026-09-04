@@ -8,7 +8,12 @@ def test_health(monkeypatch) -> None:
     with TestClient(app) as client:
         response = client.get("/health")
         assert response.status_code == 200
-        assert response.json()["status"] == "ok"
+        body = response.json()
+        assert body["status"] in {"ok", "degraded", "unhealthy"}
+        assert "checks" in body
+        assert "database" in body["checks"]
+        assert "bedrock" in body["checks"]
+        assert "X-Api-Version" in response.headers
 
 
 def test_health_ready_without_database_url(monkeypatch) -> None:
@@ -21,6 +26,7 @@ def test_health_ready_without_database_url(monkeypatch) -> None:
         body = response.json()
         assert body["status"] == "degraded"
         assert body["checks"]["database"] == "unavailable"
+        assert body["checks"]["bedrock"] == "degraded"
 
 
 def test_health_live(monkeypatch) -> None:
@@ -28,7 +34,9 @@ def test_health_live(monkeypatch) -> None:
     from main import app
 
     with TestClient(app) as client:
-        assert client.get("/health/live").status_code == 200
+        response = client.get("/health/live")
+        assert response.status_code == 200
+        assert response.json()["status"] == "ok"
 
 
 def test_debug_kb_hello_requires_database(monkeypatch) -> None:
