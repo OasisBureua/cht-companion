@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import secrets
-import uuid
 from dataclasses import dataclass
 
 from fastapi import Header, HTTPException, Request
 
 from api import config
 from api.schemas import ApiError, ApiErrorBody
+from api.ulid import new_ulid
 
 
 @dataclass
@@ -71,7 +71,7 @@ def caller_context(
     x_user_role: str | None = Header(default=None, alias="X-User-Role"),
     x_client: str | None = Header(default=None, alias="X-Client"),
 ) -> CallerContext:
-    request_id = (x_request_id or "").strip() or str(uuid.uuid4())
+    request_id = (x_request_id or "").strip() or new_ulid()
     request.state.request_id = request_id
     return CallerContext(
         request_id=request_id,
