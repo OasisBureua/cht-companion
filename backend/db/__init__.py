@@ -17,6 +17,14 @@ EMBED_DIM = 1024
 EMBEDDING_MODEL = "amazon.titan-embed-text-v2:0"
 
 
+def database_configured() -> bool:
+    """Single source of truth for 'is a DB available' — matches database_url()'s
+    .strip() so a whitespace-only DATABASE_URL is correctly treated as unset
+    everywhere in the app, not just here.
+    """
+    return bool(os.environ.get("DATABASE_URL", "").strip())
+
+
 def database_url() -> str:
     url = os.environ.get("DATABASE_URL", "").strip()
     if not url:

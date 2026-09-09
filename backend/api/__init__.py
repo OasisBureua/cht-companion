@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import logging
-import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from api.config import API_VERSION, IMAGE_TAG
 from api.routers import admin, chat, debug, health
 from api.schemas import ApiError, ApiErrorBody
-from db import apply_migrations
+from db import apply_migrations, database_configured
 
 logger = logging.getLogger("cht-companion")
 
@@ -21,7 +20,7 @@ logger = logging.getLogger("cht-companion")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Apply pending KB migrations when DATABASE_URL is set (no-op if up to date)."""
-    if os.environ.get("DATABASE_URL"):
+    if database_configured():
         try:
             from db import pending_migrations
 
@@ -73,5 +72,22 @@ def create_app() -> FastAPI:
             error=ApiErrorBody(code="validation", message=message, field=field)
         )
         return JSONResponse(status_code=400, content=body.model_dump())
+
+    @application.exception_handler(HTTPException)
+    async def http_exception_handler(_request: Request, exc: HTTPException) -> JSONResponse:
+        """Unwrap the {"detail": ...} envelope FastAPI adds by default.
+
+        Every raise HTTPException(..., detail=ApiError(...).model_dump()) in this
+        codebase already builds the flat {"error": {...}} shape from SCRUM-195 §5.2 —
+        this handler just stops FastAPI from re-wrapping it under "detail".
+        """
+        if isinstance(exc.detail, dict) and "error" in exc.detail:
+            content = exc.detail
+        else:
+            content = ApiError(
+                error=ApiErrorBody(code="internal", message=str(exc.detail))
+            ).model_dump()
+        headers = getattr(exc, "headers", None)
+        return JSONResponse(status_code=exc.status_code, content=content, headers=headers)
 
     return application
