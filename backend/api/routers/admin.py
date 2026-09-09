@@ -1,4 +1,4 @@
-"""KB admin endpoints — SCRUM-195 §2.4 (placeholders; wire to SCRUM-196 later)."""
+"""KB admin endpoints — SCRUM-195 §2.4, wired to SCRUM-196 §5.2 transactional store."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
+from api import admin_store
 from api.auth import CallerContext, caller_context, require_admin, require_bff_auth
 from api.schemas import (
     ApiError,
@@ -13,10 +14,13 @@ from api.schemas import (
     ApproveBody,
     KbStatsResponse,
     ReindexResponse,
+    RejectBody,
     SoftDeleteBody,
     SourceDetailResponse,
+    SourceListItem,
     SourceListResponse,
 )
+from db import database_configured
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -56,6 +60,56 @@ def _require_if_match(if_match: str | None) -> int:
         ) from exc
 
 
+def _service_unavailable(detail: str) -> HTTPException:
+    return HTTPException(
+        status_code=503,
+        detail=ApiError(error=ApiErrorBody(code="internal", message=detail)).model_dump(),
+    )
+
+
+def _not_found(source_id: str) -> HTTPException:
+    return HTTPException(
+        status_code=404,
+        detail=ApiError(
+            error=ApiErrorBody(
+                code="validation", message=f"Source not found: {source_id}", field="source_id"
+            )
+        ).model_dump(),
+    )
+
+
+def _version_conflict(current_version: int) -> HTTPException:
+    """current_version nests inside error (ApiErrorBody) — keeps every error
+    response a valid ApiError instance instead of a top-level sibling field.
+    """
+    return HTTPException(
+        status_code=409,
+        detail=ApiError(
+            error=ApiErrorBody(
+                code="validation",
+                message="If-Match version is stale",
+                field="If-Match",
+                current_version=current_version,
+            )
+        ).model_dump(),
+    )
+
+
+def _source_list_item(row: dict) -> SourceListItem:
+    return SourceListItem(
+        source_id=row["source_id"],
+        source_type=row["source_type"],
+        title=row["title"],
+        url=row["url"],
+        status=row["status"],
+        chunk_count=row["chunk_count"],
+        created_at=row["created_at"].isoformat(),
+        approved_by=row["approved_by"],
+        approved_at=row["approved_at"].isoformat() if row["approved_at"] else None,
+        version=row["version"],
+    )
+
+
 @router.get("/sources", response_model=SourceListResponse)
 def list_sources(
     _ctx: CallerContext = Depends(_admin_deps),
@@ -63,9 +117,12 @@ def list_sources(
     cursor: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> SourceListResponse:
-    """List sources with cursor pagination. Placeholder empty page."""
-    _ = (status, cursor, limit)
-    return SourceListResponse(items=[], next_cursor=None, total=0)
+    if not database_configured():
+        return SourceListResponse(items=[], next_cursor=None, total=0)
+
+    page = admin_store.list_sources(status=status, cursor=cursor, limit=limit)
+    items = [_source_list_item(row) for row in page.items]
+    return SourceListResponse(items=items, next_cursor=page.next_cursor, total=page.total)
 
 
 @router.get("/sources/{source_id}", response_model=SourceDetailResponse)
@@ -73,16 +130,18 @@ def get_source(
     source_id: str,
     _ctx: CallerContext = Depends(_admin_deps),
 ) -> SourceDetailResponse:
-    """Source detail + chunks. Placeholder 404 until DB wired."""
-    raise HTTPException(
-        status_code=404,
-        detail=ApiError(
-            error=ApiErrorBody(
-                code="validation",
-                message=f"Source not found (placeholder): {source_id}",
-                field="source_id",
-            )
-        ).model_dump(),
+    if not database_configured():
+        raise _not_found(source_id)
+
+    try:
+        detail = admin_store.get_source(source_id)
+    except admin_store.SourceNotFound:
+        raise _not_found(source_id) from None
+
+    return SourceDetailResponse(
+        source=_source_list_item(detail["source"]),
+        chunks=detail["chunks"],
+        detail=None,
     )
 
 
@@ -93,18 +152,46 @@ def approve_source(
     if_match: str | None = Header(default=None, alias="If-Match"),
     ctx: CallerContext = Depends(_admin_deps),
 ) -> dict:
-    """Approve pending source (sync 200). Placeholder."""
+    """Approve pending source — synchronous transactional UPDATE (SCRUM-196 §5.2)."""
     version = _require_if_match(if_match)
-    return {
-        "ok": True,
-        "placeholder": True,
-        "source_id": source_id,
-        "status": "approved",
-        "approved_by": ctx.user_id,
-        "note": body.note,
-        "version_read": version,
-        "detail": "TODO: transactional UPDATE sources + chunks (SCRUM-196 §5.2)",
-    }
+    _ = body  # note is accepted but not persisted (no column for it in sources)
+
+    if not database_configured():
+        raise _service_unavailable("database not configured")
+
+    try:
+        result = admin_store.approve_source(source_id, version, approved_by=ctx.user_id)
+    except admin_store.SourceNotFound:
+        raise _not_found(source_id) from None
+    except admin_store.VersionConflict as exc:
+        raise _version_conflict(exc.current_version) from None
+
+    return {"ok": True, **result}
+
+
+@router.post("/sources/{source_id}/reject")
+def reject_source(
+    source_id: str,
+    body: RejectBody,
+    if_match: str | None = Header(default=None, alias="If-Match"),
+    ctx: CallerContext = Depends(_admin_deps),
+) -> dict:
+    """Reject pending source — synchronous transactional UPDATE (SCRUM-196 §5.2)."""
+    version = _require_if_match(if_match)
+
+    if not database_configured():
+        raise _service_unavailable("database not configured")
+
+    try:
+        result = admin_store.reject_source(
+            source_id, version, rejected_by=ctx.user_id, reason=body.reason
+        )
+    except admin_store.SourceNotFound:
+        raise _not_found(source_id) from None
+    except admin_store.VersionConflict as exc:
+        raise _version_conflict(exc.current_version) from None
+
+    return {"ok": True, **result}
 
 
 @router.delete("/sources/{source_id}")
@@ -114,18 +201,22 @@ def soft_delete_source(
     if_match: str | None = Header(default=None, alias="If-Match"),
     ctx: CallerContext = Depends(_admin_deps),
 ) -> dict:
-    """Soft-delete source + chunks (sync 200). Placeholder."""
+    """Soft-delete source + cascade to chunks — synchronous (SCRUM-196 §5.2)."""
     version = _require_if_match(if_match)
-    return {
-        "ok": True,
-        "placeholder": True,
-        "source_id": source_id,
-        "status": "soft_deleted",
-        "reason": body.reason,
-        "deleted_by": ctx.user_id,
-        "version_read": version,
-        "detail": "TODO: transactional soft_delete on sources + chunks",
-    }
+
+    if not database_configured():
+        raise _service_unavailable("database not configured")
+
+    try:
+        result = admin_store.soft_delete_source(
+            source_id, version, deleted_by=ctx.user_id, reason=body.reason
+        )
+    except admin_store.SourceNotFound:
+        raise _not_found(source_id) from None
+    except admin_store.VersionConflict as exc:
+        raise _version_conflict(exc.current_version) from None
+
+    return {"ok": True, **result}
 
 
 @router.post(
@@ -138,12 +229,17 @@ def reindex_source(
     if_match: str | None = Header(default=None, alias="If-Match"),
     ctx: CallerContext = Depends(_admin_deps),
 ) -> ReindexResponse:
-    """Enqueue re-embed job (202 + job_id). Placeholder UUID."""
+    """Enqueue re-embed job (202 + job_id). Job dispatch still pending — see TODO."""
     _ = (ctx, _require_if_match(if_match), source_id)
+    # TODO: write an ingest_jobs row (kind='reindex') and enqueue actual re-embed work.
+    # Kept synchronous-202 here since there's no queue/worker yet to dispatch to.
     return ReindexResponse(job_id=str(uuid.uuid4()), status="queued")
 
 
 @router.get("/kb/stats", response_model=KbStatsResponse)
 def kb_stats(_ctx: CallerContext = Depends(_admin_deps)) -> KbStatsResponse:
-    """Counts by status. Placeholder zeros."""
-    return KbStatsResponse()
+    if not database_configured():
+        return KbStatsResponse(detail=None)
+
+    counts = admin_store.kb_stats()
+    return KbStatsResponse(**counts, detail=None)

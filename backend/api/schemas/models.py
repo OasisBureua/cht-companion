@@ -69,6 +69,7 @@ class ApiErrorBody(BaseModel):
     message: str
     field: str | None = None
     retry_after_ms: int | None = None
+    current_version: int | None = None
 
 
 class ApiError(BaseModel):
@@ -143,6 +144,10 @@ class ApproveBody(BaseModel):
 
 
 class SoftDeleteBody(BaseModel):
+    reason: str | None = None
+
+
+class RejectBody(BaseModel):
     reason: str | None = None
 
 
