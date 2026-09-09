@@ -11,10 +11,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN useradd --create-home --shell /bin/bash companion \
+RUN chmod +x docker-entrypoint.sh \
+    && useradd --create-home --shell /bin/bash companion \
     && chown -R companion:companion /app
 USER companion
 
 EXPOSE 8080
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Match contenthub: migrate (pending only) then start API
+ENTRYPOINT ["./docker-entrypoint.sh"]
