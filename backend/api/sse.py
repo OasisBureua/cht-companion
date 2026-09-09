@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import AsyncIterator
 from typing import Any
 
+from api.bedrock import EmbeddingError, embed_query
+from api.retrieval import RetrievedChunk, build_citation_url, build_snippet, retrieve
 from api.schemas import CitationEvent, DoneEvent, ErrorEvent, TokenEvent
 
 
@@ -40,6 +43,100 @@ def emit_done(event: DoneEvent, *, shim: bool = True) -> list[str]:
     if shim:
         lines.append("data: [DONE]\n\n")
     return lines
+
+
+def _citation_from_chunk(chunk: RetrievedChunk, citation_id: str) -> CitationEvent:
+    return CitationEvent(
+        citation_id=citation_id,
+        source_id=chunk.source_id,
+        chunk_id=chunk.chunk_id,
+        source_type=chunk.source_type,
+        title=chunk.title,
+        url=build_citation_url(chunk.url, chunk.timestamp_start),
+        playlist_url=chunk.playlist_url,
+        snippet=build_snippet(chunk.text),
+        timestamp=chunk.timestamp_start,
+    )
+
+
+async def retrieval_chat_stream(
+    query: str,
+    request_id: str,
+    *,
+    shim: bool = True,
+) -> AsyncIterator[str]:
+    """Real retrieval, placeholder generation (SCRUM-196 wired; SCRUM-195 §4.2 Bedrock
+    token streaming still pending). Falls back to the no-retrieval placeholder text
+    on embedding failure or zero hits — retrieval_degraded is logged, not raised,
+    since a degraded chat response is still a usable response.
+    """
+    t0 = time.monotonic()
+    chunks: list[RetrievedChunk] = []
+    retrieval_ms = 0
+    embedding_failed = False
+
+    try:
+        embedding = embed_query(query)
+        chunks = retrieve(embedding)
+    except EmbeddingError as exc:
+        # Non-terminal — chat still answers, just without citations. Emit a
+        # retrieval_degraded ErrorEvent so this is distinguishable from a
+        # genuine zero-hit success in logs/latency, per SCRUM-195 §4.4.
+        embedding_failed = True
+        yield emit_error(
+            ErrorEvent(
+                code="retrieval_degraded",
+                message="Retrieval unavailable; answering without knowledge-base context.",
+                retryable=True,
+                retry_after_ms=None,
+            )
+        )
+        _ = exc  # message intentionally generic — exc detail goes to server logs only
+    finally:
+        retrieval_ms = int((time.monotonic() - t0) * 1000)
+    _ = embedding_failed  # reserved: once generation is wired, this should skip Bedrock entirely
+
+    for i, chunk in enumerate(chunks):
+        yield emit_citation(_citation_from_chunk(chunk, citation_id=f"c{i + 1}"))
+
+    if chunks:
+        preview = "; ".join(c.title for c in chunks[:3])
+        text = (
+            "CHT Companion found relevant context but Bedrock generation is not "
+            f"wired yet. You asked: {query.strip()} Top matches: {preview}."
+        )
+    else:
+        text = (
+            "CHT Companion received your question but no approved knowledge-base "
+            f"content matched yet, and Bedrock generation is not wired. You asked: {query.strip()}"
+        )
+
+    index = 0
+    first_token_ms = None
+    for word in text.split(" "):
+        if first_token_ms is None:
+            first_token_ms = int((time.monotonic() - t0) * 1000)
+        piece = f"{word} "
+        for line in emit_token(TokenEvent(text=piece, index=index), shim=shim):
+            yield line
+        index += 1
+
+    total_ms = int((time.monotonic() - t0) * 1000)
+    for line in emit_done(
+        DoneEvent(
+            finish_reason="complete",
+            tokens_generated=index,
+            citations_emitted=len(chunks),
+            latency_ms={
+                "retrieval": retrieval_ms,
+                "first_token": first_token_ms or total_ms,
+                "total": total_ms,
+            },
+            request_id=request_id,
+        ),
+        shim=shim,
+    ):
+        yield line
 
 
 async def placeholder_chat_stream(
