@@ -95,3 +95,15 @@ variable "enable_scheduled_scaling" {
   type    = bool
   default = false
 }
+
+variable "bedrock_chat_model_id" {
+  description = "Bedrock model ID for Claude chat (converse_stream)"
+  type        = string
+  default     = "us.anthropic.claude-sonnet-5"
+}
+
+variable "bedrock_embed_model_id" {
+  description = "Bedrock model ID for Titan embeddings"
+  type        = string
+  default     = "amazon.titan-embed-text-v2:0"
+}

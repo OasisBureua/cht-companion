@@ -14,7 +14,9 @@ from psycopg.rows import dict_row
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
 HELLO_SOURCE_ID = "curated:hello-world"
 EMBED_DIM = 1024
-EMBEDDING_MODEL = "amazon.titan-embed-text-v2:0"
+EMBEDDING_MODEL = os.environ.get(
+    "BEDROCK_EMBED_MODEL_ID", "amazon.titan-embed-text-v2:0"
+)
 
 
 def database_configured() -> bool:

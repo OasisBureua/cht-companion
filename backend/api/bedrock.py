@@ -12,8 +12,13 @@ import boto3
 from db import EMBED_DIM, EMBEDDING_MODEL
 
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
+# Prefer BEDROCK_CHAT_MODEL_ID (.env.example / ECS); keep GENERATION_MODEL as alias.
 GENERATION_MODEL = os.environ.get(
-    "BEDROCK_GENERATION_MODEL", "anthropic.claude-3-5-sonnet-20241022-v2:0"
+    "BEDROCK_CHAT_MODEL_ID",
+    os.environ.get(
+        "BEDROCK_GENERATION_MODEL",
+        "us.anthropic.claude-sonnet-5",
+    ),
 )
 
 
