@@ -15,7 +15,9 @@ from api.schemas import ApiError, ApiErrorBody
 from db import apply_migrations, database_configured
 
 logger = logging.getLogger("cht-companion")
-
+logging.getLogger("cht-companion").setLevel(logging.INFO)
+logging.getLogger("cht-companion.bedrock").setLevel(logging.INFO)
+logging.getLogger("cht-companion.chat").setLevel(logging.INFO)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
