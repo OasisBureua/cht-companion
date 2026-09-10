@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 from collections.abc import AsyncIterator
 from typing import Any
 
-from api.bedrock import EmbeddingError, GenerationError, embed_query, stream_generation
+from api.bedrock import GenerationError, embed_query, stream_generation
 from api.retrieval import RetrievedChunk, build_citation_url, build_snippet, retrieve
 from api.schemas import CitationEvent, DoneEvent, ErrorEvent, TokenEvent
+
+logger = logging.getLogger(__name__)
 
 
 def sse_event(name: str, payload: dict[str, Any]) -> str:
@@ -84,10 +87,11 @@ async def retrieval_chat_stream(
     try:
         embedding = embed_query(query)
         chunks = retrieve(embedding)
-    except EmbeddingError as exc:
-        # Non-terminal — generation still runs, just without citations. Emit a
-        # retrieval_degraded ErrorEvent so this is distinguishable from a
-        # genuine zero-hit success in logs/latency, per SCRUM-195 §4.4.
+    except Exception as exc:
+        # Non-terminal — generation still runs without citations. Embed failures
+        # and DB/pgvector errors both map to retrieval_degraded so a bad
+        # SET/query cannot crash the SSE stream (SCRUM-195 §4.4).
+        logger.warning("retrieval degraded: %s", exc)
         yield emit_error(
             ErrorEvent(
                 code="retrieval_degraded",
@@ -96,7 +100,6 @@ async def retrieval_chat_stream(
                 retry_after_ms=None,
             )
         )
-        _ = exc  # message intentionally generic — exc detail goes to server logs only
     finally:
         retrieval_ms = int((time.monotonic() - t0) * 1000)
 
