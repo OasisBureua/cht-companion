@@ -108,6 +108,35 @@ def test_reject_endpoint_exists_and_requires_if_match(monkeypatch) -> None:
         assert no_db.status_code == 503
 
 
+def test_reindex_requires_if_match(monkeypatch) -> None:
+    monkeypatch.delenv("COMPANION_INTERNAL_SECRET", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    from main import app
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/admin/sources/yt:abc123/reindex", headers={"X-User-Role": "admin"}
+        )
+        assert response.status_code == 428
+
+
+def test_reindex_without_database_returns_503(monkeypatch) -> None:
+    """Regression: reindex_source() previously returned a fake random UUID
+    with no database write when DB was unconfigured — now it correctly
+    reports 503 like every other admin mutation route.
+    """
+    monkeypatch.delenv("COMPANION_INTERNAL_SECRET", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    from main import app
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/admin/sources/yt:abc123/reindex",
+            headers={"X-User-Role": "admin", "If-Match": "1"},
+        )
+        assert response.status_code == 503
+
+
 def test_whitespace_database_url_does_not_crash_app(monkeypatch) -> None:
     """Regression: a whitespace-only DATABASE_URL passed the truthy os.environ.get
     check in 3 places but failed db.database_url()'s .strip() deeper in the call

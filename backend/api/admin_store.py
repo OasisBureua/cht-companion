@@ -199,6 +199,38 @@ def soft_delete_source(
     )
 
 
+def enqueue_reindex(source_id: str, *, triggered_by: str | None) -> dict[str, Any]:
+    """Write a queued ingest_jobs row (kind='reindex') for source_id.
+
+    This writes the job record only — no worker/queue consumes it yet
+    (SCRUM-196 ingest worker is out of scope for this PR). A row with
+    status='queued' and no started_at/completed_at is the correct, honest
+    state until that worker exists; the caller (admin router) still returns
+    202 with this row's job_id, matching the async-job contract shape.
+    """
+    with connect() as conn:
+        source = conn.execute(
+            "SELECT source_id, chunk_count FROM sources WHERE source_id = %s",
+            (source_id,),
+        ).fetchone()
+        if source is None:
+            raise SourceNotFound(source_id)
+
+        job = conn.execute(
+            """
+            INSERT INTO ingest_jobs (
+                source_id, kind, status, triggered_by, chunks_before
+            ) VALUES (
+                %s, 'reindex', 'queued', %s, %s
+            )
+            RETURNING job_id
+            """,
+            (source_id, triggered_by, source["chunk_count"]),
+        ).fetchone()
+
+    return {"job_id": str(job["job_id"]), "status": "queued"}
+
+
 def kb_stats() -> dict[str, int]:
     with connect() as conn:
         by_status = {

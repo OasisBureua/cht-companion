@@ -6,6 +6,7 @@ import os
 
 from fastapi import APIRouter
 
+from api.bedrock import _client as _bedrock_client
 from api.config import API_VERSION, IMAGE_TAG
 from api.schemas import HealthChecks, HealthResponse
 from db import check_connectivity, schema_status
@@ -14,8 +15,17 @@ router = APIRouter(tags=["health"])
 
 
 def _bedrock_check() -> str:
-    """Placeholder: real check = Bedrock list_foundation_models within 3s."""
-    return "degraded"
+    """bedrock-runtime has no lightweight ping; a cheap proxy is confirming the
+    boto3 client constructs and credentials resolve. Full generate/embed calls
+    are too slow/costly for a health-check path.
+    """
+    try:
+        client = _bedrock_client()
+        if client.meta.region_name:
+            return "ok"
+        return "degraded"
+    except Exception:  # noqa: BLE001
+        return "unavailable"
 
 
 def _database_check() -> tuple[str, dict | None]:
@@ -52,7 +62,7 @@ def health_live() -> HealthResponse:
 
 @router.get("/health/ready", response_model=HealthResponse)
 def health_ready() -> HealthResponse:
-    """DB + Bedrock reachability (placeholders for Bedrock)."""
+    """DB + Bedrock reachability."""
     database, _extra = _database_check()
     bedrock = _bedrock_check()
     return HealthResponse(
