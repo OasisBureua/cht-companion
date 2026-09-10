@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
-
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
 from api import admin_store
@@ -229,11 +227,25 @@ def reindex_source(
     if_match: str | None = Header(default=None, alias="If-Match"),
     ctx: CallerContext = Depends(_admin_deps),
 ) -> ReindexResponse:
-    """Enqueue re-embed job (202 + job_id). Job dispatch still pending — see TODO."""
-    _ = (ctx, _require_if_match(if_match), source_id)
-    # TODO: write an ingest_jobs row (kind='reindex') and enqueue actual re-embed work.
-    # Kept synchronous-202 here since there's no queue/worker yet to dispatch to.
-    return ReindexResponse(job_id=str(uuid.uuid4()), status="queued")
+    """Enqueue re-embed job (202 + job_id): writes a real ingest_jobs row.
+
+    No queue/worker consumes this row yet (out of scope for this PR) — the
+    job sits at status='queued' until a worker exists. That's an honest,
+    inspectable state (visible via GET /admin/sources/{id} or a future
+    /admin/jobs endpoint), unlike the previous behavior of returning a
+    random UUID that corresponded to nothing in the database.
+    """
+    _require_if_match(if_match)
+
+    if not database_configured():
+        raise _service_unavailable("database not configured")
+
+    try:
+        result = admin_store.enqueue_reindex(source_id, triggered_by=ctx.user_id)
+    except admin_store.SourceNotFound:
+        raise _not_found(source_id) from None
+
+    return ReindexResponse(job_id=result["job_id"], status="queued")
 
 
 @router.get("/kb/stats", response_model=KbStatsResponse)
