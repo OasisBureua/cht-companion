@@ -1,9 +1,10 @@
-"""Bedrock client helpers — Titan embeddings for retrieval (SCRUM-196 §3, §5.4)."""
+"""Bedrock client helpers — Titan embeddings + Claude generation (SCRUM-195 §4, SCRUM-196 §3, §5.4)."""
 
 from __future__ import annotations
 
 import json
 import os
+from collections.abc import Iterator
 from functools import lru_cache
 
 import boto3
@@ -11,10 +12,17 @@ import boto3
 from db import EMBED_DIM, EMBEDDING_MODEL
 
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
+GENERATION_MODEL = os.environ.get(
+    "BEDROCK_GENERATION_MODEL", "anthropic.claude-3-5-sonnet-20241022-v2:0"
+)
 
 
 class EmbeddingError(Exception):
     """Raised when Bedrock embedding fails — caller maps this to retrieval_failed/degraded."""
+
+
+class GenerationError(Exception):
+    """Raised when Bedrock generation fails — caller maps this to llm_timeout/llm_refused/internal."""
 
 
 @lru_cache(maxsize=1)
@@ -46,3 +54,79 @@ def embed_query(text: str) -> list[float]:
             f"len={len(embedding) if isinstance(embedding, list) else 'n/a'}"
         )
     return embedding
+
+
+SYSTEM_PROMPT = (
+    "You are CHT Companion, a medical Q&A assistant for Community Health Technologies. "
+    "Answer the user's question using ONLY the provided context chunks. Each chunk is "
+    "labeled with a citation id like [c1], [c2]. Cite the chunks you used inline with "
+    "their id, e.g. \"...as shown in [c1].\" If the context does not contain enough "
+    "information to answer, say so plainly rather than guessing."
+)
+
+
+def _build_generation_messages(query: str, context_block: str) -> list[dict]:
+    user_content = query.strip()
+    if context_block:
+        user_content = f"Context:\n{context_block}\n\nQuestion: {query.strip()}"
+    return [{"role": "user", "content": user_content}]
+
+
+# Bedrock's messageStop.stopReason values, mapped onto our API contract's
+# narrower FinishReason enum (complete | truncated | error | cancelled).
+_STOP_REASON_MAP = {
+    "end_turn": "complete",
+    "stop_sequence": "complete",
+    "max_tokens": "truncated",
+    "content_filtered": "error",
+    "guardrail_intervened": "error",
+    "tool_use": "complete",
+}
+
+
+def stream_generation(
+    query: str,
+    context_block: str,
+    *,
+    max_tokens: int = 1024,
+    temperature: float = 0.2,
+) -> Iterator[str]:
+    """Stream Claude's response text via Bedrock's converse_stream API.
+
+    Yields text deltas as they arrive. On completion, the generator's return
+    value (accessible via StopIteration.value when driven manually, e.g.
+    `value = yield from stream_generation(...)`) is the FinishReason mapped
+    from Bedrock's messageStop.stopReason — see retrieval_chat_stream for
+    the consumption pattern.
+
+    Raises GenerationError on any Bedrock failure (throttling, auth, timeout,
+    malformed response) — caller maps this to llm_timeout/llm_refused/internal
+    per SCRUM-195 §4.4.
+    """
+    try:
+        response = _client().converse_stream(
+            modelId=GENERATION_MODEL,
+            system=[{"text": SYSTEM_PROMPT}],
+            messages=[
+                {"role": m["role"], "content": [{"text": m["content"]}]}
+                for m in _build_generation_messages(query, context_block)
+            ],
+            inferenceConfig={"maxTokens": max_tokens, "temperature": temperature},
+        )
+    except Exception as exc:  # noqa: BLE001 — any boto3/network failure collapses here
+        raise GenerationError(str(exc)) from exc
+
+    stop_reason = "complete"
+    try:
+        for event in response["stream"]:
+            delta = event.get("contentBlockDelta", {}).get("delta", {})
+            text = delta.get("text")
+            if text:
+                yield text
+            message_stop = event.get("messageStop")
+            if message_stop:
+                stop_reason = _STOP_REASON_MAP.get(message_stop.get("stopReason"), "complete")
+    except Exception as exc:  # noqa: BLE001 — mid-stream failure (throttle, disconnect)
+        raise GenerationError(str(exc)) from exc
+
+    return stop_reason

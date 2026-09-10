@@ -7,7 +7,7 @@ import time
 from collections.abc import AsyncIterator
 from typing import Any
 
-from api.bedrock import EmbeddingError, embed_query
+from api.bedrock import EmbeddingError, GenerationError, embed_query, stream_generation
 from api.retrieval import RetrievedChunk, build_citation_url, build_snippet, retrieve
 from api.schemas import CitationEvent, DoneEvent, ErrorEvent, TokenEvent
 
@@ -59,30 +59,35 @@ def _citation_from_chunk(chunk: RetrievedChunk, citation_id: str) -> CitationEve
     )
 
 
+def _build_context_block(chunks: list[RetrievedChunk]) -> str:
+    parts = []
+    for i, chunk in enumerate(chunks):
+        parts.append(f"[c{i + 1}] ({chunk.title}): {chunk.text}")
+    return "\n\n".join(parts)
+
+
 async def retrieval_chat_stream(
     query: str,
     request_id: str,
     *,
     shim: bool = True,
 ) -> AsyncIterator[str]:
-    """Real retrieval, placeholder generation (SCRUM-196 wired; SCRUM-195 §4.2 Bedrock
-    token streaming still pending). Falls back to the no-retrieval placeholder text
-    on embedding failure or zero hits — retrieval_degraded is logged, not raised,
-    since a degraded chat response is still a usable response.
+    """Real retrieval + real Bedrock generation (SCRUM-196 §5.4, SCRUM-195 §4.2).
+
+    Retrieval failure is non-terminal (retrieval_degraded, generation proceeds
+    without context). Generation failure is terminal (llm_timeout, stream ends).
     """
     t0 = time.monotonic()
     chunks: list[RetrievedChunk] = []
     retrieval_ms = 0
-    embedding_failed = False
 
     try:
         embedding = embed_query(query)
         chunks = retrieve(embedding)
     except EmbeddingError as exc:
-        # Non-terminal — chat still answers, just without citations. Emit a
+        # Non-terminal — generation still runs, just without citations. Emit a
         # retrieval_degraded ErrorEvent so this is distinguishable from a
         # genuine zero-hit success in logs/latency, per SCRUM-195 §4.4.
-        embedding_failed = True
         yield emit_error(
             ErrorEvent(
                 code="retrieval_degraded",
@@ -94,37 +99,48 @@ async def retrieval_chat_stream(
         _ = exc  # message intentionally generic — exc detail goes to server logs only
     finally:
         retrieval_ms = int((time.monotonic() - t0) * 1000)
-    _ = embedding_failed  # reserved: once generation is wired, this should skip Bedrock entirely
 
     for i, chunk in enumerate(chunks):
         yield emit_citation(_citation_from_chunk(chunk, citation_id=f"c{i + 1}"))
 
-    if chunks:
-        preview = "; ".join(c.title for c in chunks[:3])
-        text = (
-            "CHT Companion found relevant context but Bedrock generation is not "
-            f"wired yet. You asked: {query.strip()} Top matches: {preview}."
-        )
-    else:
-        text = (
-            "CHT Companion received your question but no approved knowledge-base "
-            f"content matched yet, and Bedrock generation is not wired. You asked: {query.strip()}"
-        )
+    context_block = _build_context_block(chunks)
 
     index = 0
     first_token_ms = None
-    for word in text.split(" "):
-        if first_token_ms is None:
-            first_token_ms = int((time.monotonic() - t0) * 1000)
-        piece = f"{word} "
-        for line in emit_token(TokenEvent(text=piece, index=index), shim=shim):
-            yield line
-        index += 1
+    finish_reason = "complete"
+    generator = stream_generation(query, context_block)
+    try:
+        while True:
+            try:
+                delta = next(generator)
+            except StopIteration as stop:
+                # Normal exhaustion — stop.value is stream_generation's mapped
+                # FinishReason (from Bedrock messageStop.stopReason), or None
+                # if the generator ended without one (shouldn't happen, but
+                # don't crash on it).
+                finish_reason = stop.value or "complete"
+                break
+            if first_token_ms is None:
+                first_token_ms = int((time.monotonic() - t0) * 1000)
+            for line in emit_token(TokenEvent(text=delta, index=index), shim=shim):
+                yield line
+            index += 1
+    except GenerationError as exc:
+        finish_reason = "error"
+        yield emit_error(
+            ErrorEvent(
+                code="llm_timeout",
+                message="Generation failed or timed out.",
+                retryable=True,
+                retry_after_ms=None,
+            )
+        )
+        _ = exc  # message intentionally generic — exc detail goes to server logs only
 
     total_ms = int((time.monotonic() - t0) * 1000)
     for line in emit_done(
         DoneEvent(
-            finish_reason="complete",
+            finish_reason=finish_reason,
             tokens_generated=index,
             citations_emitted=len(chunks),
             latency_ms={
