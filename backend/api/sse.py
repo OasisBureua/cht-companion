@@ -130,6 +130,7 @@ async def retrieval_chat_stream(
             index += 1
     except GenerationError as exc:
         finish_reason = "error"
+        logger.warning("generation failed: %s", exc)
         yield emit_error(
             ErrorEvent(
                 code="llm_timeout",
@@ -138,7 +139,6 @@ async def retrieval_chat_stream(
                 retry_after_ms=None,
             )
         )
-        _ = exc  # message intentionally generic — exc detail goes to server logs only
 
     total_ms = int((time.monotonic() - t0) * 1000)
     for line in emit_done(

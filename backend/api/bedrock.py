@@ -94,7 +94,7 @@ def stream_generation(
     context_block: str,
     *,
     max_tokens: int = 1024,
-    temperature: float = 0.2,
+    temperature: float | None = None,
 ) -> Iterator[str]:
     """Stream Claude's response text via Bedrock's converse_stream API.
 
@@ -107,7 +107,14 @@ def stream_generation(
     Raises GenerationError on any Bedrock failure (throttling, auth, timeout,
     malformed response) — caller maps this to llm_timeout/llm_refused/internal
     per SCRUM-195 §4.4.
+
+    Claude Sonnet 5 rejects `temperature` (deprecated for this model). Omit it
+    unless the caller explicitly opts in for models that still accept it.
     """
+    inference_config: dict = {"maxTokens": max_tokens}
+    if temperature is not None:
+        inference_config["temperature"] = temperature
+
     try:
         response = _client().converse_stream(
             modelId=GENERATION_MODEL,
@@ -116,7 +123,7 @@ def stream_generation(
                 {"role": m["role"], "content": [{"text": m["content"]}]}
                 for m in _build_generation_messages(query, context_block)
             ],
-            inferenceConfig={"maxTokens": max_tokens, "temperature": temperature},
+            inferenceConfig=inference_config,
         )
     except Exception as exc:  # noqa: BLE001 — any boto3/network failure collapses here
         raise GenerationError(str(exc)) from exc
