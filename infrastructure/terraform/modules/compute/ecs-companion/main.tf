@@ -61,12 +61,18 @@ resource "aws_ecs_task_definition" "companion" {
         { name = "CHT_ENVIRONMENT", value = var.environment },
         { name = "APP_NAME", value = local.prefix },
         { name = "IMAGE_TAG", value = local.container_image_tag },
+        { name = "BEDROCK_CHAT_MODEL_ID", value = var.bedrock_chat_model_id },
+        { name = "BEDROCK_EMBED_MODEL_ID", value = var.bedrock_embed_model_id },
       ]
 
       secrets = [
         {
           name      = "DATABASE_URL"
           valueFrom = "${var.database_secret_arn}:url::"
+        },
+        {
+          name      = "COMPANION_INTERNAL_SECRET"
+          valueFrom = var.bff_auth_secret_arn
         },
       ]
 

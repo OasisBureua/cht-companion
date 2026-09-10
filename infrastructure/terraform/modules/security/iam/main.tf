@@ -1,6 +1,12 @@
 locals {
   prefix = var.resource_prefix
-  database_secret_arn_pattern = "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:${local.prefix}-database-secrets-*"
+  # Execution role may pull any companion secret injected into the task definition.
+  # Prefer explicit ARNs from callers; keep name patterns as a fallback for
+  # secrets created outside the current apply graph.
+  execution_secret_resources = length(var.secret_arns) > 0 ? var.secret_arns : [
+    "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:${local.prefix}-database-secrets-*",
+    "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:${local.prefix}-bff-auth-*",
+  ]
 }
 
 data "aws_iam_policy_document" "ecs_task_assume" {
@@ -38,7 +44,7 @@ resource "aws_iam_role_policy_attachment" "ecs_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# CMK-encrypted secret cht-dev-companion-database-secrets (or cht-companion-database-secrets in prod).
+# CMK-encrypted secrets (database URL, BFF auth, …) injected via ECS task definition.
 resource "aws_iam_role_policy" "ecs_execution_secrets" {
   name = "${local.prefix}-ecs-execution-secrets"
   role = aws_iam_role.ecs_execution.id
@@ -52,7 +58,7 @@ resource "aws_iam_role_policy" "ecs_execution_secrets" {
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret",
         ]
-        Resource = local.database_secret_arn_pattern
+        Resource = local.execution_secret_resources
       },
       {
         Effect = "Allow"

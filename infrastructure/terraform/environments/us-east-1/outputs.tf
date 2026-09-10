@@ -31,6 +31,17 @@ output "companion_database_secret_arn" {
   sensitive = true
 }
 
+output "companion_bff_auth_secret_name" {
+  description = "Secrets Manager name for COMPANION_INTERNAL_SECRET — platform NestJS must use the same value as X-BFF-Auth"
+  value       = module.bff_auth.secret_name
+}
+
+output "companion_bff_auth_secret_arn" {
+  description = "Secrets Manager ARN for COMPANION_INTERNAL_SECRET"
+  value       = module.bff_auth.secret_arn
+  sensitive   = true
+}
+
 output "kb_lambda_function_name" {
   value = module.kb_lambda.lambda_function_name
 }

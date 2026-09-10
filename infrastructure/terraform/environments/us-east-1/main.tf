@@ -228,6 +228,14 @@ module "companion_db" {
   backup_retention_period = var.db_backup_retention_period
 }
 
+module "bff_auth" {
+  source = "../../modules/security/bff-auth"
+
+  resource_prefix = local.resource_prefix
+  environment     = var.environment
+  kms_key_arn     = aws_kms_key.companion.arn
+}
+
 module "iam" {
   source = "../../modules/security/iam"
 
@@ -238,6 +246,7 @@ module "iam" {
   kms_key_arn     = aws_kms_key.companion.arn
   secret_arns = [
     module.companion_db.database_secret_arn,
+    module.bff_auth.secret_arn,
   ]
 }
 
@@ -259,6 +268,7 @@ module "ecs_companion" {
   log_group_name                      = aws_cloudwatch_log_group.companion.name
   container_image                     = var.companion_image
   database_secret_arn                 = module.companion_db.database_secret_arn
+  bff_auth_secret_arn                 = module.bff_auth.secret_arn
   task_cpu                            = var.companion_task_cpu
   task_memory                         = var.companion_task_memory
   desired_count                       = var.companion_desired_count

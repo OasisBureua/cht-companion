@@ -31,7 +31,8 @@ def retrieve(embedding: list[float], *, k: int = DEFAULT_K) -> list[RetrievedChu
     vector_literal = "[" + ",".join(str(x) for x in embedding) + "]"
 
     with connect() as conn:
-        conn.execute("SET LOCAL hnsw.ef_search = %s", (HNSW_EF_SEARCH,))
+        # SET LOCAL cannot take bind parameters ($1) — interpolate a validated int.
+        conn.execute(f"SET LOCAL hnsw.ef_search = {int(HNSW_EF_SEARCH)}")
         rows = conn.execute(
             """
             SELECT chunk_id, source_id, source_type, title, url, playlist_url,

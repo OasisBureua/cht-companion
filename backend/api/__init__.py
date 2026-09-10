@@ -10,16 +10,19 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from api.config import API_VERSION, IMAGE_TAG
+from api.logging_config import configure_app_logging
 from api.routers import admin, chat, debug, health
 from api.schemas import ApiError, ApiErrorBody
 from db import apply_migrations, database_configured
 
+configure_app_logging()
 logger = logging.getLogger("cht-companion")
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Apply pending KB migrations when DATABASE_URL is set (no-op if up to date)."""
+    configure_app_logging()
     if database_configured():
         try:
             from db import pending_migrations
@@ -38,6 +41,7 @@ async def lifespan(_app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    configure_app_logging()
     application = FastAPI(
         title="cht-companion",
         description="Members-only RAG chat API (called only via CHT NestJS BFF).",
