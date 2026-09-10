@@ -66,6 +66,11 @@ variable "database_secret_arn" {
   type = string
 }
 
+variable "bff_auth_secret_arn" {
+  description = "Secrets Manager ARN for COMPANION_INTERNAL_SECRET (plain string secret)"
+  type        = string
+}
+
 variable "task_cpu" {
   type    = number
   default = 512

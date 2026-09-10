@@ -70,6 +70,10 @@ resource "aws_ecs_task_definition" "companion" {
           name      = "DATABASE_URL"
           valueFrom = "${var.database_secret_arn}:url::"
         },
+        {
+          name      = "COMPANION_INTERNAL_SECRET"
+          valueFrom = var.bff_auth_secret_arn
+        },
       ]
 
       logConfiguration = {

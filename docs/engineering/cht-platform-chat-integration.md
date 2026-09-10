@@ -262,7 +262,23 @@ New React UI should key off **named events** and treat shim as optional.
 | Variable | Purpose |
 |----------|---------|
 | `COMPANION_BASE_URL` | e.g. `http://cht-companion:8080` |
-| `COMPANION_INTERNAL_SECRET` | Same value as companion Secrets Manager secret |
+| `COMPANION_INTERNAL_SECRET` | Same plaintext as companion Secrets Manager secret |
+
+**Companion secret (this repo / Terraform):**
+
+| Env | Secret name |
+|-----|-------------|
+| development | `cht-dev-companion-bff-auth` |
+| prod | `cht-companion-bff-auth` |
+
+```bash
+# Read the value to paste into NestJS env / platform secrets (same account)
+aws secretsmanager get-secret-value \
+  --secret-id cht-dev-companion-bff-auth \
+  --query SecretString --output text
+```
+
+Companion ECS injects that value as `COMPANION_INTERNAL_SECRET`. NestJS must send it as `X-BFF-Auth`.
 
 ### Pseudo-code (Nest)
 
@@ -383,7 +399,7 @@ BFF can expose a thin wrapper or rely on ECS health checks; the chat UI does not
 
 ## 9. Platform checklist
 
-- [ ] Secrets Manager / env: `COMPANION_INTERNAL_SECRET` on NestJS **and** companion ECS
+- [ ] Secrets Manager: companion creates `cht-*-companion-bff-auth`; NestJS env `COMPANION_INTERNAL_SECRET` = same plaintext
 - [ ] `COMPANION_BASE_URL=http://cht-companion:8080` (dev/prod Service Connect name)
 - [ ] NestJS `POST /api/chat` SSE proxy (no body buffering)
 - [ ] Cognito/session guard + guest CTA
