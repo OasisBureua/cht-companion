@@ -63,9 +63,14 @@ def _citation_from_chunk(chunk: RetrievedChunk, citation_id: str) -> CitationEve
 
 
 def _build_context_block(chunks: list[RetrievedChunk]) -> str:
+    """Uses context_text (the matched chunk plus its immediate same-source
+    neighbors — see retrieval.py's sibling-chunk join) so generation isn't cut
+    off at a fixed chunk boundary. Citations (_citation_from_chunk) still point
+    at the specific matched chunk's own text/timestamp, not the extended window.
+    """
     parts = []
     for i, chunk in enumerate(chunks):
-        parts.append(f"[c{i + 1}] ({chunk.title}): {chunk.text}")
+        parts.append(f"[c{i + 1}] ({chunk.title}): {chunk.context_text}")
     return "\n\n".join(parts)
 
 
