@@ -36,6 +36,21 @@ provider "aws" {
 
 data "aws_caller_identity" "current" {}
 
+# CHAT-19/20: YouTube Data API OAuth credentials for caption ingest, channel-owner
+# consented. Created manually (aws secretsmanager create-secret) rather than
+# module-managed — the refresh token comes from a one-time interactive OAuth
+# consent flow (kb/scripts/get_youtube_refresh_token.py), not something Terraform
+# can generate, so this secret's contents lie outside Terraform's lifecycle even
+# though the IAM grant to read it is managed here.
+#
+# Name doesn't follow the ${local.resource_prefix}-<name> convention the other
+# companion secrets use (cht-dev-companion-database-secrets, cht-dev-companion-bff-auth)
+# — this one predates being wired into this file and is dev-only; rename to
+# cht-dev-companion-youtube-oauth in a follow-up if/when this is promoted to prod.
+data "aws_secretsmanager_secret" "youtube_oauth" {
+  name = "cht-dev-youtube-oauth"
+}
+
 locals {
   is_prod          = var.environment == "prod"
   resource_prefix  = local.is_prod ? "cht-companion" : "cht-dev-companion"
@@ -247,6 +262,7 @@ module "iam" {
   secret_arns = [
     module.companion_db.database_secret_arn,
     module.bff_auth.secret_arn,
+    data.aws_secretsmanager_secret.youtube_oauth.arn,
   ]
 }
 
