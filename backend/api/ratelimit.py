@@ -28,6 +28,14 @@ REDIS_URL = os.environ.get("REDIS_URL", "").strip()
 CHAT_REQUESTS_PER_MINUTE = int(os.environ.get("RATE_LIMIT_CHAT_PER_MINUTE", "20"))
 CHAT_REQUESTS_PER_DAY = int(os.environ.get("RATE_LIMIT_CHAT_PER_DAY", "500"))
 
+# /generate is service-to-service (cht-reports), not per-end-user, so it's
+# keyed by caller rather than user_id and given a much lower ceiling. Report
+# generation is a bulk/background job, not an interactive chat turn, and a
+# runaway caller here would burn real Bedrock spend fast on the larger
+# max_tokens ceiling /generate allows.
+GENERATE_REQUESTS_PER_MINUTE = int(os.environ.get("RATE_LIMIT_GENERATE_PER_MINUTE", "5"))
+GENERATE_REQUESTS_PER_DAY = int(os.environ.get("RATE_LIMIT_GENERATE_PER_DAY", "200"))
+
 _MINUTE_WINDOW_SECONDS = 60
 _DAY_WINDOW_SECONDS = 86400
 
@@ -108,6 +116,44 @@ def check_chat_rate_limit(user_id: str | None) -> None:
         # ValueError: a malformed REDIS_URL raised at _client() construction.
         # Both are "the rate-limit store is broken," not "caller is over
         # quota" — same fail-open(dev)/fail-closed(prod) policy applies.
+        if is_dev:
+            return
+        raise ConnectionError(str(exc)) from exc
+
+
+def check_generate_rate_limit(caller: str | None) -> None:
+    """Raise RateLimitExceeded if the caller is over quota for /generate.
+
+    Same fail-open(dev)/fail-closed(prod) policy as check_chat_rate_limit,
+    keyed by caller (e.g. "cht-reports") rather than end-user_id since this
+    is a service-to-service call.
+    """
+    bucket = caller or "unknown-caller"
+    is_dev = config.CHT_ENVIRONMENT in {"development", "dev", "local"}
+
+    if not redis_configured():
+        if is_dev:
+            return
+        raise ConnectionError("REDIS_URL not configured")
+
+    try:
+        client = _client()
+        minute = _check_window(
+            client, f"ratelimit:generate:{bucket}:minute:{int(time.time() // 60)}",
+            GENERATE_REQUESTS_PER_MINUTE, _MINUTE_WINDOW_SECONDS,
+        )
+        if not minute.allowed:
+            raise RateLimitExceeded(minute.retry_after_ms)
+
+        day = _check_window(
+            client, f"ratelimit:generate:{bucket}:day:{int(time.time() // 86400)}",
+            GENERATE_REQUESTS_PER_DAY, _DAY_WINDOW_SECONDS,
+        )
+        if not day.allowed:
+            raise RateLimitExceeded(day.retry_after_ms)
+    except RateLimitExceeded:
+        raise
+    except (redis.RedisError, ValueError) as exc:
         if is_dev:
             return
         raise ConnectionError(str(exc)) from exc

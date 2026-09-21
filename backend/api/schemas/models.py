@@ -52,6 +52,25 @@ class ChatRequest(BaseModel):
         return value
 
 
+class GenerateRequest(BaseModel):
+    """POST /generate body. No retrieval, no chat history: a plain
+    completion call for callers (cht-reports) that assemble their own
+    context rather than using this service's RAG chat pipeline."""
+
+    model_config = {"extra": "ignore"}
+
+    system_prompt: str = Field(..., min_length=1, max_length=8000)
+    user_content: str = Field(..., min_length=1, max_length=100_000)
+    max_tokens: int = Field(default=4096, ge=1, le=8192)
+    temperature: float | None = Field(default=None, ge=0.0, le=2.0)
+
+
+class GenerateResponse(BaseModel):
+    text: str
+    finish_reason: FinishReason
+    request_id: str
+
+
 class HealthChecks(BaseModel):
     database: CheckStatus = "unavailable"
     bedrock: CheckStatus = "unavailable"

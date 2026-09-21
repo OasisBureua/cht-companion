@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 
 from api.config import API_VERSION, IMAGE_TAG
 from api.logging_config import configure_app_logging
-from api.routers import admin, chat, debug, health
+from api.routers import admin, chat, debug, generate, health
 from api.schemas import ApiError, ApiErrorBody
 from db import apply_migrations, database_configured
 
@@ -44,13 +44,19 @@ def create_app() -> FastAPI:
     configure_app_logging()
     application = FastAPI(
         title="cht-companion",
-        description="Members-only RAG chat API (called only via CHT NestJS BFF).",
+        description=(
+            "Members-only RAG chat API, called via the CHT NestJS BFF. Also "
+            "exposes /generate, a plain Bedrock completion endpoint for "
+            "service-to-service callers (cht-reports) that assemble their "
+            "own context."
+        ),
         version=IMAGE_TAG,
         lifespan=lifespan,
     )
 
     application.include_router(health.router)
     application.include_router(chat.router)
+    application.include_router(generate.router)
     application.include_router(admin.router)
     application.include_router(debug.router)
 

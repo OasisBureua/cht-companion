@@ -121,6 +121,72 @@ _STOP_REASON_MAP = {
 }
 
 
+def generate_completion(
+    system_prompt: str,
+    user_content: str,
+    *,
+    max_tokens: int = 4096,
+    temperature: float | None = None,
+    request_id: str | None = None,
+) -> tuple[str, str]:
+    """Non-streaming Bedrock generation for callers that need a plain
+    "prompt in, completion out" call with no retrieval step, for example
+    cht-reports' report-generation pipeline, which assembles its own input
+    packet (transcript + survey data) and doesn't want this service's RAG
+    chat context.
+
+    Unlike stream_generation, this takes an arbitrary system_prompt rather
+    than the hardcoded chat SYSTEM_PROMPT, and returns the complete text
+    plus finish reason in one call rather than yielding deltas. A report
+    is a complete document, not an incremental chat response.
+
+    Raises GenerationError on any Bedrock failure, same as stream_generation.
+    Returns (text, finish_reason).
+    """
+    inference_config: dict = {"maxTokens": max_tokens}
+    if temperature is not None:
+        inference_config["temperature"] = temperature
+
+    t0 = time.monotonic()
+    try:
+        response = _client().converse(
+            modelId=GENERATION_MODEL,
+            system=[{"text": system_prompt}],
+            messages=[{"role": "user", "content": [{"text": user_content}]}],
+            inferenceConfig=inference_config,
+        )
+    except Exception as exc:  # noqa: BLE001 — any boto3/network failure collapses here
+        _log_bedrock(
+            "bedrock_generate_completion_error",
+            model_id=GENERATION_MODEL,
+            request_id=request_id,
+            latency_ms=int((time.monotonic() - t0) * 1000),
+            error=str(exc),
+        )
+        raise GenerationError(str(exc)) from exc
+
+    bedrock_stop = response.get("stopReason")
+    stop_reason = _STOP_REASON_MAP.get(bedrock_stop, "complete")
+    usage = response.get("usage", {})
+
+    content_blocks = response.get("output", {}).get("message", {}).get("content", [])
+    text = "".join(block.get("text", "") for block in content_blocks)
+
+    _log_bedrock(
+        "bedrock_generate_completion_ok",
+        model_id=GENERATION_MODEL,
+        request_id=request_id,
+        finish_reason=stop_reason,
+        bedrock_stop_reason=bedrock_stop,
+        input_tokens=usage.get("inputTokens"),
+        output_tokens=usage.get("outputTokens"),
+        total_tokens=usage.get("totalTokens"),
+        wall_latency_ms=int((time.monotonic() - t0) * 1000),
+    )
+
+    return text, stop_reason
+
+
 def stream_generation(
     query: str,
     context_block: str,
