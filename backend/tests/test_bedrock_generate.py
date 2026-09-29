@@ -87,3 +87,11 @@ def test_generate_completion_omits_temperature_by_default(mock_client_fn) -> Non
 
     call_kwargs = mock_client.converse.call_args.kwargs
     assert "temperature" not in call_kwargs["inferenceConfig"]
+
+
+def test_bedrock_client_allows_multi_minute_generations() -> None:
+    """Reports can take minutes; botocore's 60s default read timeout cut them off."""
+    from api import bedrock
+
+    assert 120 <= bedrock._BEDROCK_CONFIG.read_timeout < 300
+    assert bedrock._BEDROCK_CONFIG.connect_timeout == 10

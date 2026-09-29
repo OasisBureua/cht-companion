@@ -17,6 +17,7 @@ Secrets Manager rather than this needing a second auth scheme.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Header, HTTPException
+from starlette.concurrency import run_in_threadpool
 
 from api.auth import require_bff_auth
 from api.bedrock import GenerationError, generate_completion
@@ -67,7 +68,11 @@ async def generate(
         ) from exc
 
     try:
-        text, finish_reason = generate_completion(
+        # boto3 blocks. Run it off the event loop so /health keeps answering
+        # during a multi-minute report generation (ECS kills the task after
+        # three failed health checks).
+        text, finish_reason = await run_in_threadpool(
+            generate_completion,
             body.system_prompt,
             body.user_content,
             max_tokens=body.max_tokens,
