@@ -19,10 +19,11 @@ def test_generate_completion_returns_text_and_finish_reason(mock_client_fn) -> N
     mock_client.converse.return_value = _mock_converse_response("Executive summary text.")
     mock_client_fn.return_value = mock_client
 
-    text, finish_reason = generate_completion("System prompt", "User content")
+    text, finish_reason, usage = generate_completion("System prompt", "User content")
 
     assert text == "Executive summary text."
     assert finish_reason == "complete"
+    assert usage == {"input_tokens": 100, "output_tokens": 50}
 
     call_kwargs = mock_client.converse.call_args.kwargs
     assert call_kwargs["system"] == [{"text": "System prompt"}]
@@ -35,7 +36,7 @@ def test_generate_completion_maps_max_tokens_stop_reason_to_truncated(mock_clien
     mock_client.converse.return_value = _mock_converse_response("Partial...", stop_reason="max_tokens")
     mock_client_fn.return_value = mock_client
 
-    _text, finish_reason = generate_completion("System prompt", "User content")
+    _text, finish_reason, usage = generate_completion("System prompt", "User content")
 
     assert finish_reason == "truncated"
 
@@ -50,7 +51,7 @@ def test_generate_completion_joins_multiple_content_blocks(mock_client_fn) -> No
     }
     mock_client_fn.return_value = mock_client
 
-    text, _finish_reason = generate_completion("System prompt", "User content")
+    text, _finish_reason, _usage = generate_completion("System prompt", "User content")
 
     assert text == "Part one. Part two."
 
@@ -95,3 +96,20 @@ def test_bedrock_client_allows_multi_minute_generations() -> None:
 
     assert 120 <= bedrock._BEDROCK_CONFIG.read_timeout < 300
     assert bedrock._BEDROCK_CONFIG.connect_timeout == 10
+
+
+@patch("api.bedrock._client")
+def test_generate_completion_ignores_reasoning_blocks_in_text(mock_client_fn) -> None:
+    """Adaptive thinking comes back as reasoningContent blocks; only text blocks form the reply."""
+    mock_client = MagicMock()
+    mock_client.converse.return_value = {
+        "output": {"message": {"content": [{"reasoningContent": {"reasoningText": {"text": ""}}}, {"text": "{\"a\": 1}"}]}},
+        "stopReason": "end_turn",
+        "usage": {"inputTokens": 10, "outputTokens": 900, "totalTokens": 910},
+    }
+    mock_client_fn.return_value = mock_client
+
+    text, finish_reason, usage = generate_completion("System prompt", "User content")
+
+    assert text == '{"a": 1}'
+    assert usage["output_tokens"] == 900

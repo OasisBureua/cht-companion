@@ -140,7 +140,7 @@ def generate_completion(
     max_tokens: int = 4096,
     temperature: float | None = None,
     request_id: str | None = None,
-) -> tuple[str, str]:
+) -> tuple[str, str, dict[str, int | None]]:
     """Non-streaming Bedrock generation for callers that need a plain
     "prompt in, completion out" call with no retrieval step, for example
     cht-reports' report-generation pipeline, which assembles its own input
@@ -153,7 +153,7 @@ def generate_completion(
     is a complete document, not an incremental chat response.
 
     Raises GenerationError on any Bedrock failure, same as stream_generation.
-    Returns (text, finish_reason).
+    Returns (text, finish_reason, usage) with usage = {input_tokens, output_tokens}.
     """
     inference_config: dict = {"maxTokens": max_tokens}
     if temperature is not None:
@@ -183,6 +183,7 @@ def generate_completion(
 
     content_blocks = response.get("output", {}).get("message", {}).get("content", [])
     text = "".join(block.get("text", "") for block in content_blocks)
+    reasoning_blocks = sum(1 for block in content_blocks if "reasoningContent" in block)
 
     _log_bedrock(
         "bedrock_generate_completion_ok",
@@ -193,10 +194,15 @@ def generate_completion(
         input_tokens=usage.get("inputTokens"),
         output_tokens=usage.get("outputTokens"),
         total_tokens=usage.get("totalTokens"),
+        text_chars=len(text),
+        reasoning_blocks=reasoning_blocks,
         wall_latency_ms=int((time.monotonic() - t0) * 1000),
     )
 
-    return text, stop_reason
+    return text, stop_reason, {
+        "input_tokens": usage.get("inputTokens"),
+        "output_tokens": usage.get("outputTokens"),
+    }
 
 
 def stream_generation(

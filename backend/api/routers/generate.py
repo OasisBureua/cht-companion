@@ -71,7 +71,7 @@ async def generate(
         # boto3 blocks. Run it off the event loop so /health keeps answering
         # during a multi-minute report generation (ECS kills the task after
         # three failed health checks).
-        text, finish_reason = await run_in_threadpool(
+        text, finish_reason, usage = await run_in_threadpool(
             generate_completion,
             body.system_prompt,
             body.user_content,
@@ -87,4 +87,4 @@ async def generate(
             ).model_dump(),
         ) from exc
 
-    return GenerateResponse(text=text, finish_reason=finish_reason, request_id=request_id)
+    return GenerateResponse(text=text, finish_reason=finish_reason, request_id=request_id, usage=usage)
