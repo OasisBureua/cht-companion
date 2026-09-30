@@ -10,6 +10,7 @@ from collections.abc import Iterator
 from functools import lru_cache
 
 import boto3
+from botocore.config import Config
 
 from db import EMBED_DIM, EMBEDDING_MODEL
 
@@ -34,9 +35,20 @@ class GenerationError(Exception):
     """Raised when Bedrock generation fails — caller maps this to llm_timeout/llm_refused/internal."""
 
 
+# A full report (up to 8192 output tokens) takes minutes; botocore's default
+# 60s read timeout would cut it off. Stay under the caller's 300s wait
+# (Node fetch headers timeout in cht-reports) so a slow call fails here
+# with a clean 502 instead of a dropped connection.
+_BEDROCK_CONFIG = Config(
+    read_timeout=int(os.environ.get("BEDROCK_READ_TIMEOUT_SECONDS", "270")),
+    connect_timeout=10,
+    retries={"max_attempts": 2, "mode": "standard"},
+)
+
+
 @lru_cache(maxsize=1)
 def _client():
-    return boto3.client("bedrock-runtime", region_name=AWS_REGION)
+    return boto3.client("bedrock-runtime", region_name=AWS_REGION, config=_BEDROCK_CONFIG)
 
 
 def _log_bedrock(event: str, **fields: object) -> None:
