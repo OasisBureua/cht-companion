@@ -1,32 +1,70 @@
-"""cht-companion-kb: chunk + embed jobs (EventBridge / SQS) — CHAT-17/20/21.
+"""cht-companion-kb: chunk + embed jobs (EventBridge / SQS / S3) — CHAT-17/20/21.
 
 Event shapes handled:
-  - {"action": "scheduled_refresh", "source": "eventbridge.schedule"}  -> the actual EventBridge rule
-    payload (cht-dev-companion-kb-schedule, rate(1 day)). Runs catalog discovery (CHAT-19) and
-    reports candidate sources found — does NOT enqueue them yet. See discovery.py's module
-    docstring: no transcript-text source exists until YouTube channel-owner OAuth is granted
-    (captions.download needs OAuth, not just an API key; cht-platform-tool's
-    /catalog/transcripts/:shootId is dead code). Enqueuing now would just produce SQS
-    messages this Lambda's own REQUIRED_FIELDS check rejects for missing `text`.
+  - {"action": "scheduled_refresh", "source": "eventbridge.schedule"}  -> daily catalog discovery.
+    Enqueues one metadata message per new clip. Transcript text is fetched by the SQS worker
+    (transcripts.py). captions.download cannot: this channel's tracks are ASR and YouTube returns 403.
   - {"Records": [{"body": "<json SourceIngestRequest>"}]}              -> SQS: one source per record
-  - {"source_id": ..., "source_type": ..., ...}                        -> direct invoke (bootstrap loads, manual backfill)
+  - {"Records": [{"eventSource": "aws:s3", "s3": {...}}]}              -> drop-zone upload (PDF, docx, text)
+  - {"source_id": ..., "source_type": ..., ...}                        -> direct invoke (bootstrap, manual)
+
+`text` is required only when it cannot be fetched. A youtube_caption message
+without `text` triggers a transcript fetch. A permanent miss is reported and
+the message is deleted. A transient fetch failure is raised so SQS retries.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import os
+from datetime import date
 from typing import Any
+from urllib.parse import unquote_plus
 
 from discovery import find_new_sources
+from documents import (
+    DocumentUnavailable,
+    EmptyDocument,
+    UnsupportedDocument,
+    load_document,
+    source_id_for_key,
+)
 from embedding import EMBEDDING_MODEL
+from enqueue import enqueue_candidates
 from ingest import IngestResult, ingest_source
 from store import SourceInput
+from transcripts import TranscriptUnavailable, fetch_youtube_transcript, youtube_id_from_source
 
 logger = logging.getLogger("cht-companion-kb")
 logging.basicConfig(level=logging.INFO)
 
-REQUIRED_FIELDS = ("source_id", "source_type", "title", "url", "text")
+REQUIRED_FIELDS = ("source_id", "source_type", "title", "url")
+
+
+def _as_date(value: Any) -> date | None:
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str) and value.strip():
+        try:
+            return date.fromisoformat(value.strip()[:10])
+        except ValueError:
+            return None
+    return None
+
+
+def _resolve_text(payload: dict[str, Any]) -> str:
+    text = (payload.get("text") or "").strip()
+    if text:
+        return text
+    if payload.get("source_type") != "youtube_caption":
+        raise ValueError("missing required fields: ['text']")
+
+    video_id = youtube_id_from_source(payload["source_id"], payload.get("url") or "")
+    try:
+        return fetch_youtube_transcript(video_id)
+    except TranscriptUnavailable as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def _source_request_to_input(payload: dict[str, Any]) -> tuple[SourceInput, str]:
@@ -42,11 +80,11 @@ def _source_request_to_input(payload: dict[str, Any]) -> tuple[SourceInput, str]
         embedding_model=EMBEDDING_MODEL,
         playlist_url=payload.get("playlist_url"),
         external_id=payload.get("external_id"),
-        doctors=payload.get("doctors", []),
-        topics=payload.get("topics", []),
-        content_date=payload.get("content_date"),
+        doctors=payload.get("doctors") or [],
+        topics=payload.get("topics") or [],
+        content_date=_as_date(payload.get("content_date")),
     )
-    return source, payload["text"]
+    return source, _resolve_text(payload)
 
 
 def _ingest_result_to_dict(result: IngestResult) -> dict[str, Any]:
@@ -65,7 +103,57 @@ def _handle_source_request(payload: dict[str, Any]) -> dict[str, Any]:
     return _ingest_result_to_dict(result)
 
 
+def _is_s3_event(event: dict[str, Any]) -> bool:
+    records = event.get("Records") or []
+    if not records:
+        return False
+    first = records[0]
+    return first.get("eventSource") == "aws:s3" or ("s3" in first and "body" not in first)
+
+
+def _handle_s3_record(record: dict[str, Any]) -> dict[str, Any]:
+    bucket = record["s3"]["bucket"]["name"]
+    key = unquote_plus(record["s3"]["object"]["key"])
+    expected = os.environ.get("RAW_BUCKET_NAME", "").strip()
+    if expected and bucket != expected:
+        return {"skipped": True, "key": key, "reason": f"unexpected bucket {bucket}"}
+    if key.endswith("/"):
+        return {"skipped": True, "key": key, "reason": "folder marker"}
+
+    try:
+        text, title = load_document(bucket, key)
+    except UnsupportedDocument as exc:
+        logger.info("s3_skip_unsupported", extra={"key": key, "error": str(exc)})
+        return {"skipped": True, "key": key, "reason": str(exc)}
+    except (EmptyDocument, DocumentUnavailable) as exc:
+        logger.error("s3_document_unusable", extra={"key": key, "error": str(exc)})
+        return {"key": key, "error": str(exc)}
+
+    source = SourceInput(
+        source_id=source_id_for_key(key),
+        source_type="curated_doc",
+        title=title,
+        url=f"s3://{bucket}/{key}",
+        embedding_model=EMBEDDING_MODEL,
+        external_id=key,
+    )
+    result = _ingest_result_to_dict(ingest_source(source, text))
+    result["key"] = key
+    return result
+
+
+def _handle_s3_event(event: dict[str, Any]) -> dict[str, Any]:
+    results = [_handle_s3_record(record) for record in event["Records"]]
+    ok = all(r.get("error") is None for r in results)
+    return {"ok": ok, "message": "cht-companion-kb s3 drop", "results": results}
+
+
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    # S3 drop zone: ObjectCreated on the raw bucket. Checked before the SQS
+    # branch because both event types use a top-level "Records" list.
+    if _is_s3_event(event):
+        return _handle_s3_event(event)
+
     # SQS: one or more source-ingest requests, each JSON-encoded in .body
     if "Records" in event:
         results = []
@@ -91,19 +179,25 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             logger.error("scheduled_discovery_failed", extra={"error": str(exc)})
             return {"ok": False, "message": "cht-companion-kb scheduled discovery failed", "error": str(exc)}
 
+        try:
+            enqueued = enqueue_candidates(candidates)
+        except Exception as exc:  # noqa: BLE001 — log, then fail the invocation so EventBridge retries
+            logger.error("scheduled_enqueue_failed", extra={"error": str(exc), "count": len(candidates)})
+            raise
+
         logger.info(
-            "scheduled_discovery_found_candidates",
-            extra={"action": event.get("action"), "count": len(candidates)},
+            "scheduled_discovery_enqueued",
+            extra={"action": event.get("action"), "count": len(candidates), "enqueued": len(enqueued)},
         )
         return {
             "ok": True,
             "message": (
                 f"cht-companion-kb scheduled reconcile: {len(candidates)} new catalog source(s) found, "
-                "not yet enqueued — no transcript-text source wired (blocked on YouTube channel-owner "
-                "OAuth, see discovery.py)"
+                f"{len(enqueued)} enqueued for transcript fetch"
             ),
             "candidates_found": len(candidates),
-            "candidate_source_ids": [c.source_id for c in candidates],
+            "enqueued": len(enqueued),
+            "candidate_source_ids": enqueued,
         }
 
     # Direct invoke: bootstrap loads, manual backfill, local testing.

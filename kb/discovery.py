@@ -2,18 +2,13 @@
 
 Queries cht-platform-tool's public /catalog/clips endpoint for candidate
 sources, filters out anything already known to cht-companion-db, and returns
-a metadata-only shape ready for SQS enqueue — once a transcript source exists.
+a metadata-only shape. handler.py enqueues that shape; the SQS worker fetches
+transcript text (transcripts.py). This module never sees caption text.
 
-**Blocked on transcript text** (see module docstring in handler.py): YouTube's
-captions.download API requires OAuth as the channel owner, not just an API
-key — cht-platform-tool's YOUTUBE_API_KEY (config: youtube.apiKey) cannot
-authorize it. /catalog/transcripts/:shootId is dead code on cht-platform-tool
-(returns null unconditionally — "Legacy MediaHub transcript endpoint
-removed"). Until channel-owner OAuth is granted (a real, external blocker,
-not a code gap — flag to whoever owns the CHM YouTube channel), this module
-finds *what* to ingest but has no *text* to hand the pipeline, so callers
-must not enqueue these as SQS ingest requests yet: handler.py's
-REQUIRED_FIELDS check would reject every one of them for a missing `text`.
+/catalog/transcripts/:shootId on cht-platform-tool is dead code (returns null
+unconditionally). captions.download is also unusable here: the channel's
+tracks are auto-generated and YouTube returns 403. Transcript text comes from
+the player caption track instead.
 """
 
 from __future__ import annotations
@@ -33,8 +28,8 @@ DEFAULT_PAGE_SIZE = 50
 
 @dataclass
 class CandidateSource:
-    """A catalog clip not yet present in cht-companion-db. Metadata only —
-    no `text` field, since no transcript source is wired yet.
+    """A catalog clip not yet present in cht-companion-db. Metadata only;
+    transcript text is fetched later, per SQS message.
     """
 
     source_id: str

@@ -49,3 +49,8 @@ output "kb_lambda_function_name" {
 output "kb_ingest_queue_url" {
   value = module.kb_lambda.kb_ingest_queue_url
 }
+
+output "kb_raw_bucket_name" {
+  description = "Drop zone for PDFs and other documents. Uploads invoke the KB Lambda."
+  value       = module.kb_lambda.raw_bucket_name
+}

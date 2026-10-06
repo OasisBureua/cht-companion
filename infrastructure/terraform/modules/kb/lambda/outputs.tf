@@ -17,3 +17,7 @@ output "kb_ingest_queue_arn" {
 output "security_group_id" {
   value = aws_security_group.kb_lambda.id
 }
+
+output "raw_bucket_name" {
+  value = aws_s3_bucket.raw.id
+}

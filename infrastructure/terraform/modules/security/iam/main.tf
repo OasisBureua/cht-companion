@@ -182,11 +182,22 @@ data "aws_iam_policy_document" "lambda_kb" {
       "sqs:DeleteMessage",
       "sqs:GetQueueAttributes",
       "sqs:ChangeMessageVisibility",
+      "sqs:SendMessage",
+      "sqs:SendMessageBatch",
     ]
     resources = [
       "arn:aws:sqs:${var.aws_region}:${var.aws_account_id}:${local.prefix}-kb-ingest",
       "arn:aws:sqs:${var.aws_region}:${var.aws_account_id}:${local.prefix}-kb-ingest-dlq",
     ]
+  }
+
+  statement {
+    sid    = "RawBucketRead"
+    effect = "Allow"
+    actions = [
+      "s3:GetObject",
+    ]
+    resources = ["arn:aws:s3:::${local.prefix}-raw/*"]
   }
 
   statement {
@@ -204,6 +215,7 @@ data "aws_iam_policy_document" "lambda_kb" {
     actions = [
       "kms:Decrypt",
       "kms:DescribeKey",
+      "kms:GenerateDataKey",
     ]
     resources = [var.kms_key_arn]
   }
