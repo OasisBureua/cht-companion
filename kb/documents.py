@@ -116,6 +116,29 @@ def _get_object(bucket: str, key: str) -> bytes:
     return response["Body"].read()
 
 
+def split_front_matter(text: str) -> tuple[dict[str, str], str]:
+    """Split a leading `---` block of `key: value` lines off a markdown body.
+
+    `title` and `url` in that block become the citation title and link, so a
+    site page can be cited by its public URL instead of its S3 key.
+    """
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}, text
+    for end in range(1, len(lines)):
+        if lines[end].strip() == "---":
+            break
+    else:
+        return {}, text
+
+    meta: dict[str, str] = {}
+    for line in lines[1:end]:
+        key, sep, value = line.partition(":")
+        if sep and key.strip():
+            meta[key.strip().lower()] = value.strip().strip("\"'")
+    return meta, "\n".join(lines[end + 1 :]).strip()
+
+
 def load_document(bucket: str, key: str) -> tuple[str, str]:
     """Return (plain text, title) for one drop-zone object."""
     return extract_text(key, _get_object(bucket, key)), document_title(key)

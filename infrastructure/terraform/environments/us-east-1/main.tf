@@ -302,7 +302,8 @@ module "kb_lambda" {
   private_subnet_ids  = local.private_subnet_ids
   kms_key_arn         = aws_kms_key.companion.arn
   lambda_role_arn     = module.iam.lambda_kb_role_arn
-  container_image     = var.kb_image
+  container_image         = var.kb_image
+  enqueue_container_image = var.kb_enqueue_image
   database_secret_arn = module.companion_db.database_secret_arn
   log_retention_days  = local.log_retention_days
   schedule_expression = var.kb_schedule_expression

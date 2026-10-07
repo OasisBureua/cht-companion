@@ -11,7 +11,21 @@ from documents import (
     document_title,
     extract_text,
     source_id_for_key,
+    split_front_matter,
 )
+
+
+def test_front_matter_sets_title_and_url() -> None:
+    meta, body = split_front_matter(
+        "---\ntitle: About CHM\nurl: https://devapp.communityhealth.media/about\n---\n\n# About\nBody text."
+    )
+    assert meta == {"title": "About CHM", "url": "https://devapp.communityhealth.media/about"}
+    assert body == "# About\nBody text."
+
+
+def test_text_without_front_matter_is_unchanged() -> None:
+    assert split_front_matter("# About\nBody") == ({}, "# About\nBody")
+    assert split_front_matter("---\nno closing fence") == ({}, "---\nno closing fence")
 
 
 def test_title_and_source_id_from_key() -> None:

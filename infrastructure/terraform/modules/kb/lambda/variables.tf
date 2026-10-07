@@ -23,7 +23,13 @@ variable "lambda_role_arn" {
 }
 
 variable "container_image" {
-  type = string
+  description = "Embed worker image (kb/Dockerfile)"
+  type        = string
+}
+
+variable "enqueue_container_image" {
+  description = "Catalog enqueue image (kb/Dockerfile.enqueue)"
+  type        = string
 }
 
 variable "database_secret_arn" {

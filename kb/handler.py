@@ -1,9 +1,7 @@
-"""cht-companion-kb: chunk + embed jobs (EventBridge / SQS / S3) — CHAT-17/20/21.
+"""cht-companion-kb embed worker (SQS / S3 / direct invoke) — CHAT-17/20/21.
 
-Event shapes handled:
-  - {"action": "scheduled_refresh", "source": "eventbridge.schedule"}  -> daily catalog discovery.
-    Enqueues one metadata message per new clip. Transcript text is fetched by the SQS worker
-    (transcripts.py). captions.download cannot: this channel's tracks are ASR and YouTube returns 403.
+Catalog discovery lives in enqueue_handler.py. This function only embeds:
+
   - {"Records": [{"body": "<json SourceIngestRequest>"}]}              -> SQS: one source per record
   - {"Records": [{"eventSource": "aws:s3", "s3": {...}}]}              -> drop-zone upload (PDF, docx, text)
   - {"source_id": ..., "source_type": ..., ...}                        -> direct invoke (bootstrap, manual)
@@ -11,6 +9,7 @@ Event shapes handled:
 `text` is required only when it cannot be fetched. A youtube_caption message
 without `text` triggers a transcript fetch. A permanent miss is reported and
 the message is deleted. A transient fetch failure is raised so SQS retries.
+Embeddings are amazon.titan-embed-text-v2:0 via Bedrock.
 """
 
 from __future__ import annotations
@@ -22,17 +21,17 @@ from datetime import date
 from typing import Any
 from urllib.parse import unquote_plus
 
-from discovery import find_new_sources
 from documents import (
     DocumentUnavailable,
     EmptyDocument,
     UnsupportedDocument,
     load_document,
     source_id_for_key,
+    split_front_matter,
 )
 from embedding import EMBEDDING_MODEL
-from enqueue import enqueue_candidates
 from ingest import IngestResult, ingest_source
+from podcast_metadata import lookup_podcast, podcast_title, podcast_url
 from store import SourceInput
 from transcripts import TranscriptUnavailable, fetch_youtube_transcript, youtube_id_from_source
 
@@ -129,13 +128,20 @@ def _handle_s3_record(record: dict[str, Any]) -> dict[str, Any]:
         logger.error("s3_document_unusable", extra={"key": key, "error": str(exc)})
         return {"key": key, "error": str(exc)}
 
+    front, text = split_front_matter(text)
+    if not text:
+        return {"key": key, "error": f"no text after front matter in {key}"}
+
+    meta = lookup_podcast(key)
     source = SourceInput(
         source_id=source_id_for_key(key),
         source_type="curated_doc",
-        title=title,
-        url=f"s3://{bucket}/{key}",
+        title=podcast_title(key) or front.get("title") or title,
+        url=podcast_url(key) or front.get("url") or f"s3://{bucket}/{key}",
         embedding_model=EMBEDDING_MODEL,
-        external_id=key,
+        external_id=(meta or {}).get("youtube_id") or key,
+        doctors=(meta or {}).get("doctors") or [],
+        topics=(meta or {}).get("topics") or [],
     )
     result = _ingest_result_to_dict(ingest_source(source, text))
     result["key"] = key
@@ -167,37 +173,10 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         ok = all("error" not in r or r["error"] is None for r in results)
         return {"ok": ok, "message": "cht-companion-kb sqs batch", "results": results}
 
-    # EventBridge scheduled trigger. Real rule payload is
-    # {"action": "scheduled_refresh", "source": "eventbridge.schedule"} (confirmed live
-    # via `aws events list-targets-by-rule --rule cht-dev-companion-kb-schedule`), not the
-    # generic "aws.events" shape a raw EventBridge-console test event uses — match both so
-    # local/console testing still exercises this branch.
     if event.get("source") in ("aws.events", "eventbridge.schedule"):
-        try:
-            candidates = find_new_sources()
-        except Exception as exc:  # noqa: BLE001 — catalog/DB failure shouldn't crash the scheduled run
-            logger.error("scheduled_discovery_failed", extra={"error": str(exc)})
-            return {"ok": False, "message": "cht-companion-kb scheduled discovery failed", "error": str(exc)}
-
-        try:
-            enqueued = enqueue_candidates(candidates)
-        except Exception as exc:  # noqa: BLE001 — log, then fail the invocation so EventBridge retries
-            logger.error("scheduled_enqueue_failed", extra={"error": str(exc), "count": len(candidates)})
-            raise
-
-        logger.info(
-            "scheduled_discovery_enqueued",
-            extra={"action": event.get("action"), "count": len(candidates), "enqueued": len(enqueued)},
-        )
         return {
-            "ok": True,
-            "message": (
-                f"cht-companion-kb scheduled reconcile: {len(candidates)} new catalog source(s) found, "
-                f"{len(enqueued)} enqueued for transcript fetch"
-            ),
-            "candidates_found": len(candidates),
-            "enqueued": len(enqueued),
-            "candidate_source_ids": enqueued,
+            "ok": False,
+            "message": "catalog discovery runs on the enqueue function, not the embed function",
         }
 
     # Direct invoke: bootstrap loads, manual backfill, local testing.

@@ -2,7 +2,7 @@
 
 Queries cht-platform-tool's public /catalog/clips endpoint for candidate
 sources, filters out anything already known to cht-companion-db, and returns
-a metadata-only shape. handler.py enqueues that shape; the SQS worker fetches
+a metadata-only shape. enqueue_handler.py enqueues that shape; the embed worker fetches
 transcript text (transcripts.py). This module never sees caption text.
 
 /catalog/transcripts/:shootId on cht-platform-tool is dead code (returns null

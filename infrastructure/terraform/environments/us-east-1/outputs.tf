@@ -43,7 +43,13 @@ output "companion_bff_auth_secret_arn" {
 }
 
 output "kb_lambda_function_name" {
-  value = module.kb_lambda.lambda_function_name
+  description = "Embed worker. SQS and the raw-bucket drop zone invoke this function."
+  value       = module.kb_lambda.lambda_function_name
+}
+
+output "kb_enqueue_function_name" {
+  description = "Catalog check. EventBridge invokes this function, which enqueues clips for the embed worker."
+  value       = module.kb_lambda.enqueue_function_name
 }
 
 output "kb_ingest_queue_url" {

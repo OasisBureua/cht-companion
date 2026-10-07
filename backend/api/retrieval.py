@@ -1,14 +1,30 @@
-"""Chunk retrieval — pure vector k-NN over pgvector (SCRUM-196 §5.4)."""
+"""Hybrid chunk retrieval over pgvector + Postgres full-text (SCRUM-196 §5.4).
+
+Two candidate lists are fused by reciprocal rank:
+  - vector: cosine distance to the query embedding (HNSW),
+  - keyword: full-text match on title + text, so exact names like "DB-12"
+    surface even when their embedding is not the closest.
+Vector hits past RETRIEVAL_MAX_DISTANCE are dropped unless the keyword search
+also found them. The caller reranks the fused list, then build_sources()
+groups the survivors into one context block and one citation per source.
+"""
 
 from __future__ import annotations
 
+import os
+import re
 from dataclasses import dataclass, field
 
 from db import connect
 
-DEFAULT_K = 10
+DEFAULT_K = 8
+CANDIDATE_LIMIT = 30
 HNSW_EF_SEARCH = 128
 SIBLING_RADIUS = 1  # chunk_index N-1 and N+1 from the same source
+RRF_K = 60
+MAX_VECTOR_DISTANCE = float(os.environ.get("RETRIEVAL_MAX_DISTANCE", "0.8"))
+_KEYWORD_TERMS = 16
+_LIVE = "status NOT IN ('rejected', 'soft_deleted')"
 
 
 @dataclass
@@ -22,17 +38,137 @@ class RetrievedChunk:
     playlist_url: str | None
     text: str
     timestamp_start: int | None
-    # Immediate same-source neighbor text (chunk_index ±SIBLING_RADIUS), ordered
-    # by chunk_index. Extends the LLM's context past a single chunk's boundary
-    # without adding separate citations — the citation still points at this
-    # chunk specifically, not its siblings.
-    context_text: str = field(default="")
+    distance: float | None = None
+    score: float = 0.0
 
 
-def _fetch_siblings(
-    conn, hits: list[dict]
-) -> dict[tuple[str, int], str]:
-    """One query for every hit's neighbor range, keyed by (source_id, chunk_index)."""
+@dataclass
+class SourceContext:
+    """Every retrieved chunk from one source, merged with its neighbors.
+
+    `best` is the highest-ranked hit; the citation's snippet and timestamp
+    come from it.
+    """
+
+    source_id: str
+    source_type: str
+    title: str
+    url: str
+    playlist_url: str | None
+    best: RetrievedChunk
+    hits: list[RetrievedChunk] = field(default_factory=list)
+    context_text: str = ""
+
+
+def keyword_query(text: str) -> str | None:
+    """websearch_to_tsquery input that ORs the question's terms.
+
+    Plain websearch syntax ANDs every word, so a natural question would need
+    every term in one chunk. Leading hyphens are stripped because websearch
+    reads them as NOT.
+    """
+    terms: list[str] = []
+    seen: set[str] = set()
+    for raw in re.findall(r"[A-Za-z0-9][A-Za-z0-9.\-]*", text):
+        term = raw.strip(".-")
+        # "DB12" and "DB-12" index differently; search both spellings.
+        code = re.fullmatch(r"([A-Za-z]+)-?(\d+)", term)
+        variants = [term, f"{code[1]}-{code[2]}", f"{code[1]}{code[2]}"] if code else [term]
+        for variant in variants:
+            key = variant.lower()
+            if key in {"or", "and", "not"} or key in seen:
+                continue
+            seen.add(key)
+            terms.append(variant)
+        if len(terms) >= _KEYWORD_TERMS:
+            break
+    return " or ".join(terms[:_KEYWORD_TERMS]) or None
+
+
+def _to_chunk(row: dict, *, score: float) -> RetrievedChunk:
+    return RetrievedChunk(
+        chunk_id=row["chunk_id"],
+        source_id=row["source_id"],
+        source_type=row["source_type"],
+        chunk_index=row["chunk_index"],
+        title=row["title"],
+        url=row["url"],
+        playlist_url=row["playlist_url"],
+        text=row["text"],
+        timestamp_start=row["timestamp_start"],
+        distance=row.get("distance"),
+        score=score,
+    )
+
+
+def fuse(
+    vector_rows: list[dict],
+    keyword_rows: list[dict],
+    *,
+    limit: int = CANDIDATE_LIMIT,
+    max_distance: float | None = MAX_VECTOR_DISTANCE,
+) -> list[RetrievedChunk]:
+    """Reciprocal rank fusion of the two candidate lists."""
+    scores: dict[str, float] = {}
+    rows: dict[str, dict] = {}
+
+    for rank, row in enumerate(vector_rows):
+        distance = row.get("distance")
+        if max_distance is not None and distance is not None and distance > max_distance:
+            continue
+        scores[row["chunk_id"]] = scores.get(row["chunk_id"], 0.0) + 1.0 / (RRF_K + rank + 1)
+        rows[row["chunk_id"]] = row
+
+    for rank, row in enumerate(keyword_rows):
+        scores[row["chunk_id"]] = scores.get(row["chunk_id"], 0.0) + 1.0 / (RRF_K + rank + 1)
+        rows.setdefault(row["chunk_id"], row)
+
+    ordered = sorted(scores, key=lambda chunk_id: scores[chunk_id], reverse=True)[:limit]
+    return [_to_chunk(rows[chunk_id], score=scores[chunk_id]) for chunk_id in ordered]
+
+
+_COLUMNS = (
+    "chunk_id, source_id, source_type, chunk_index, title, url, playlist_url, text, timestamp_start"
+)
+
+
+def search(embedding: list[float], query_text: str = "", *, limit: int = CANDIDATE_LIMIT) -> list[RetrievedChunk]:
+    """Fused vector + keyword candidates, best first. No neighbor text yet."""
+    vector_literal = "[" + ",".join(str(x) for x in embedding) + "]"
+    ts_query = keyword_query(query_text)
+
+    with connect() as conn:
+        # SET LOCAL cannot take bind parameters ($1) — interpolate a validated int.
+        conn.execute(f"SET LOCAL hnsw.ef_search = {int(HNSW_EF_SEARCH)}")
+        vector_rows = conn.execute(
+            f"""
+            SELECT {_COLUMNS}, embedding <=> %s::vector AS distance
+            FROM chunks
+            WHERE {_LIVE}
+            ORDER BY embedding <=> %s::vector
+            LIMIT %s
+            """,
+            (vector_literal, vector_literal, limit),
+        ).fetchall()
+
+        keyword_rows = []
+        if ts_query:
+            keyword_rows = conn.execute(
+                f"""
+                SELECT {_COLUMNS}, ts_rank_cd(text_search, q) AS keyword_score
+                FROM chunks, websearch_to_tsquery('english', %s) AS q
+                WHERE {_LIVE} AND text_search @@ q
+                ORDER BY keyword_score DESC
+                LIMIT %s
+                """,
+                (ts_query, limit),
+            ).fetchall()
+
+    return fuse(vector_rows, keyword_rows, limit=limit)
+
+
+def _fetch_neighbors(conn, hits: list[RetrievedChunk]) -> dict[str, dict[int, str]]:
+    """Text for every hit and its ±SIBLING_RADIUS neighbors, keyed by source then chunk_index."""
     if not hits:
         return {}
 
@@ -40,84 +176,75 @@ def _fetch_siblings(
     params: list[object] = []
     for hit in hits:
         conditions.append("(source_id = %s AND chunk_index BETWEEN %s AND %s)")
-        params.extend(
-            [hit["source_id"], hit["chunk_index"] - SIBLING_RADIUS, hit["chunk_index"] + SIBLING_RADIUS]
-        )
+        params.extend([hit.source_id, hit.chunk_index - SIBLING_RADIUS, hit.chunk_index + SIBLING_RADIUS])
 
     rows = conn.execute(
         f"""
         SELECT source_id, chunk_index, text
         FROM chunks
-        WHERE status = 'approved' AND ({' OR '.join(conditions)})
+        WHERE {_LIVE} AND ({' OR '.join(conditions)})
         ORDER BY source_id, chunk_index
         """,
         params,
     ).fetchall()
 
-    by_source: dict[str, list[tuple[int, str]]] = {}
+    by_source: dict[str, dict[int, str]] = {}
     for row in rows:
-        by_source.setdefault(row["source_id"], []).append((row["chunk_index"], row["text"]))
+        by_source.setdefault(row["source_id"], {})[row["chunk_index"]] = row["text"]
+    return by_source
 
-    context: dict[tuple[str, int], str] = {}
+
+def _merge_windows(hits: list[RetrievedChunk], texts: dict[int, str]) -> str:
+    """One passage per run of consecutive chunk indices, so overlapping
+    neighbor windows from two hits in the same source are not repeated."""
+    wanted: set[int] = set()
     for hit in hits:
-        source_rows = by_source.get(hit["source_id"], [])
-        window = [
-            text
-            for idx, text in source_rows
-            if hit["chunk_index"] - SIBLING_RADIUS <= idx <= hit["chunk_index"] + SIBLING_RADIUS
-        ]
-        context[(hit["source_id"], hit["chunk_index"])] = " ".join(window) if window else hit["text"]
+        wanted.update(range(hit.chunk_index - SIBLING_RADIUS, hit.chunk_index + SIBLING_RADIUS + 1))
+        texts.setdefault(hit.chunk_index, hit.text)
 
-    return context
+    passages: list[list[str]] = []
+    previous: int | None = None
+    for index in sorted(i for i in wanted if i in texts):
+        if previous is None or index != previous + 1:
+            passages.append([])
+        passages[-1].append(texts[index])
+        previous = index
+    return "\n\n…\n\n".join(" ".join(passage) for passage in passages)
 
 
-def retrieve(embedding: list[float], *, k: int = DEFAULT_K) -> list[RetrievedChunk]:
-    """Top-k approved chunks by cosine distance to the query embedding, each
-    extended with its immediate same-source neighbors' text.
+def group_by_source(hits: list[RetrievedChunk], neighbors: dict[str, dict[int, str]]) -> list[SourceContext]:
+    """Group ranked hits by source, keeping the order of each source's best hit."""
+    grouped: dict[str, SourceContext] = {}
+    for hit in hits:
+        source = grouped.get(hit.source_id)
+        if source is None:
+            source = SourceContext(
+                source_id=hit.source_id,
+                source_type=hit.source_type,
+                title=hit.title,
+                url=hit.url,
+                playlist_url=hit.playlist_url,
+                best=hit,
+            )
+            grouped[hit.source_id] = source
+        source.hits.append(hit)
 
-    Mirrors SCRUM-196 §5.4's pure vector k-NN query: status='approved' filter,
-    HNSW ef_search tuned per-query, embedding <=> distance ordering. The
-    sibling-chunk join is a second, cheap indexed query (chunks_source_id_idx),
-    not a second vector search — it exists because a fixed-size chunk boundary
-    can land mid-thought (confirmed by a manual quality test against real
-    ingested data: a real chunk cut off before the source finished explaining a
-    trial's results, and the model correctly said so rather than guessing, but
-    the answer was incomplete because the next chunk was never fetched).
-    """
-    vector_literal = "[" + ",".join(str(x) for x in embedding) + "]"
+    for source in grouped.values():
+        source.context_text = _merge_windows(source.hits, dict(neighbors.get(source.source_id, {})))
+    return list(grouped.values())
 
+
+def build_sources(hits: list[RetrievedChunk]) -> list[SourceContext]:
+    if not hits:
+        return []
     with connect() as conn:
-        # SET LOCAL cannot take bind parameters ($1) — interpolate a validated int.
-        conn.execute(f"SET LOCAL hnsw.ef_search = {int(HNSW_EF_SEARCH)}")
-        rows = conn.execute(
-            """
-            SELECT chunk_id, source_id, source_type, chunk_index, title, url,
-                   playlist_url, text, timestamp_start
-            FROM chunks
-            WHERE status = 'approved'
-            ORDER BY embedding <=> %s::vector
-            LIMIT %s
-            """,
-            (vector_literal, k),
-        ).fetchall()
+        neighbors = _fetch_neighbors(conn, hits)
+    return group_by_source(hits, neighbors)
 
-        sibling_context = _fetch_siblings(conn, rows)
 
-    return [
-        RetrievedChunk(
-            chunk_id=row["chunk_id"],
-            source_id=row["source_id"],
-            source_type=row["source_type"],
-            chunk_index=row["chunk_index"],
-            title=row["title"],
-            url=row["url"],
-            playlist_url=row["playlist_url"],
-            text=row["text"],
-            timestamp_start=row["timestamp_start"],
-            context_text=sibling_context.get((row["source_id"], row["chunk_index"]), row["text"]),
-        )
-        for row in rows
-    ]
+def retrieve(embedding: list[float], query_text: str = "", *, k: int = DEFAULT_K) -> list[SourceContext]:
+    """search() + build_sources() without reranking."""
+    return build_sources(search(embedding, query_text)[:k])
 
 
 def build_citation_url(url: str, timestamp_start: int | None) -> str:

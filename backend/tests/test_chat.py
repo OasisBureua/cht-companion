@@ -12,6 +12,92 @@ def _drain(async_gen):
     return asyncio.run(_collect())
 
 
+def _no_sources(query, _history, **_kwargs):
+    from api.rag import RagResult
+
+    return RagResult(
+        sources=[], search_query=query, candidates=0, reranked=False, top_distance=None, top_rerank_score=None
+    )
+
+
+def _rag_with(sources, query="q"):
+    from api.rag import RagResult
+
+    return RagResult(
+        sources=sources, search_query=query, candidates=len(sources), reranked=True, top_distance=0.2, top_rerank_score=0.9
+    )
+
+
+def _source(source_id: str, *chunk_indexes: int):
+    from api.retrieval import RetrievedChunk, SourceContext
+
+    hits = [
+        RetrievedChunk(
+            chunk_id=f"{source_id}:{i}",
+            source_id=source_id,
+            source_type="curated_doc",
+            chunk_index=i,
+            title=f"Title {source_id}",
+            url=f"https://example.com/{source_id}",
+            playlist_url=None,
+            text=f"text {i}",
+            timestamp_start=None,
+        )
+        for i in chunk_indexes
+    ]
+    return SourceContext(
+        source_id=source_id,
+        source_type="curated_doc",
+        title=f"Title {source_id}",
+        url=f"https://example.com/{source_id}",
+        playlist_url=None,
+        best=hits[0],
+        hits=hits,
+        context_text=" ".join(h.text for h in hits),
+    )
+
+
+def test_retrieval_chat_stream_emits_one_citation_per_source(monkeypatch) -> None:
+    from api import sse
+
+    monkeypatch.setattr(
+        sse, "find_sources", lambda query, _history, **_kw: _rag_with([_source("s1", 3, 7), _source("s2", 0)], query)
+    )
+    seen = {}
+
+    def _fake_stream(_query, context_block, **kwargs):
+        seen["context"] = context_block
+        seen["history"] = kwargs.get("history")
+        yield "ok"
+
+    monkeypatch.setattr(sse, "stream_generation", _fake_stream)
+
+    body = "".join(_drain(sse.retrieval_chat_stream("q", "req-1", history=[{"role": "user", "content": "hi"}])))
+
+    assert body.count("event: citation") == 2
+    assert '"citation_id":"c1","source_id":"s1","chunk_id":"s1:3"' in body
+    assert '"citations_emitted":2' in body
+    assert seen["context"].startswith("[c1] (Title s1):\ntext 3 text 7")
+    assert "[c2] (Title s2):" in seen["context"]
+    assert seen["history"] == [{"role": "user", "content": "hi"}]
+
+
+def test_retrieval_chat_stream_degrades_when_retrieval_raises(monkeypatch) -> None:
+    from api import sse
+
+    def _boom(*_args, **_kwargs):
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(sse, "find_sources", _boom)
+    monkeypatch.setattr(sse, "stream_generation", lambda *_a, **_k: iter(["answer"]))
+
+    body = "".join(_drain(sse.retrieval_chat_stream("q", "req-1")))
+
+    assert '"code":"retrieval_degraded"' in body
+    assert "event: citation" not in body
+    assert '"text":"answer"' in body
+
+
 def test_chat_sse_named_events_and_shim(monkeypatch) -> None:
     monkeypatch.delenv("COMPANION_INTERNAL_SECRET", raising=False)
     monkeypatch.delenv("DATABASE_URL", raising=False)
@@ -71,8 +157,7 @@ def test_retrieval_chat_stream_emits_llm_timeout_on_generation_failure(monkeypat
     """
     from api import bedrock, sse
 
-    monkeypatch.setattr(sse, "embed_query", lambda _query: [])
-    monkeypatch.setattr(sse, "retrieve", lambda _embedding: [])
+    monkeypatch.setattr(sse, "find_sources", _no_sources)
 
     def _raise_generation_error(*_args, **_kwargs):
         raise bedrock.GenerationError("boto3 network unreachable")
@@ -92,8 +177,7 @@ def test_retrieval_chat_stream_emits_llm_timeout_on_generation_failure(monkeypat
 def test_retrieval_chat_stream_streams_generation_deltas(monkeypatch) -> None:
     from api import sse
 
-    monkeypatch.setattr(sse, "embed_query", lambda _query: [])
-    monkeypatch.setattr(sse, "retrieve", lambda _embedding: [])
+    monkeypatch.setattr(sse, "find_sources", _no_sources)
 
     def _fake_stream(_query, _context_block, **_kwargs):
         yield "Hello"
@@ -119,8 +203,7 @@ def test_retrieval_chat_stream_maps_max_tokens_stop_reason_to_truncated(monkeypa
     """
     from api import sse
 
-    monkeypatch.setattr(sse, "embed_query", lambda _query: [])
-    monkeypatch.setattr(sse, "retrieve", lambda _embedding: [])
+    monkeypatch.setattr(sse, "find_sources", _no_sources)
 
     def _fake_stream_truncated(_query, _context_block, **_kwargs):
         yield "Partial answer"

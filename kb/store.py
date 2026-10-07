@@ -2,10 +2,10 @@
 
 Mirrors backend/db's connect() pattern (psycopg v3, dict rows) and
 backend/api/admin_store.py's query style so ingest-written rows and
-admin/retrieval-read rows agree on shape. New sources land status='pending'
-(schema default) — nothing here ever writes 'approved'; that's CHAT-34's
-admin review surface, by design (CHT-9 requires human approval before a
-chunk is retrievable, since retrieval.py only reads status='approved').
+admin/retrieval-read rows agree on shape. New sources and chunks are
+inserted as status='approved' so chat can retrieve them immediately.
+ON CONFLICT does not touch status, so a later reject or soft-delete
+survives a re-ingest.
 """
 
 from __future__ import annotations
@@ -116,8 +116,8 @@ def upsert_source(conn: psycopg.Connection, source: SourceInput) -> None:
         """
         INSERT INTO sources (
             source_id, source_type, title, url, playlist_url, external_id,
-            doctors, topics, content_date, embedding_model
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            doctors, topics, content_date, embedding_model, status
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'approved')
         ON CONFLICT (source_id) DO UPDATE SET
             title = EXCLUDED.title,
             url = EXCLUDED.url,
@@ -184,9 +184,9 @@ def upsert_chunks(
                 chunk_id, source_id, source_type, chunk_index, text, text_length,
                 embedding, speaker, speakers_in_chunk, timestamp_start, timestamp_end,
                 duration_seconds, title, url, playlist_url, doctors, topics,
-                content_date, embedding_model, chunk_hash
+                content_date, embedding_model, chunk_hash, status
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s::vector, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s::vector, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'approved'
             )
             ON CONFLICT (source_id, chunk_index) DO UPDATE SET
                 text = EXCLUDED.text,

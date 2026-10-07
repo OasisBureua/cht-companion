@@ -74,7 +74,13 @@ variable "companion_image" {
 }
 
 variable "kb_image" {
-  type = string
+  description = "Embed worker image"
+  type        = string
+}
+
+variable "kb_enqueue_image" {
+  description = "Catalog enqueue image"
+  type        = string
 }
 
 variable "companion_ecr_repository_name" {

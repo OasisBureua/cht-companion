@@ -1,76 +1,13 @@
 import json
 from unittest.mock import patch
 
-import pytest
-
 from handler import handler
 
 
-@patch("handler.enqueue_candidates")
-@patch("handler.find_new_sources")
-def test_scheduled_event_enqueues_discovery_candidates(mock_find, mock_enqueue) -> None:
-    from discovery import CandidateSource
-
-    mock_find.return_value = [
-        CandidateSource(
-            source_id="youtube_caption:abc",
-            source_type="youtube_caption",
-            title="Test",
-            url="https://youtube.com/watch?v=abc",
-            doctors=[],
-            topics=[],
-            posted_at=None,
-        )
-    ]
-    mock_enqueue.return_value = ["youtube_caption:abc"]
-    result = handler({"source": "aws.events"}, None)
-    assert result["ok"] is True
-    assert result["candidates_found"] == 1
-    assert result["enqueued"] == 1
-    assert result["candidate_source_ids"] == ["youtube_caption:abc"]
-    mock_enqueue.assert_called_once_with(mock_find.return_value)
-
-
-@patch("handler.find_new_sources")
-def test_real_eventbridge_rule_payload_runs_discovery(mock_find) -> None:
-    # Actual payload from cht-dev-companion-kb-schedule (confirmed live via
-    # `aws events list-targets-by-rule`), not the generic "aws.events" shape.
-    mock_find.return_value = []
+def test_schedule_event_is_not_embedded() -> None:
     result = handler({"action": "scheduled_refresh", "source": "eventbridge.schedule"}, None)
-    assert result["ok"] is True
-    assert result["candidates_found"] == 0
-    assert result["enqueued"] == 0
-    assert "enqueued for transcript fetch" in result["message"]
-
-
-@patch("handler.enqueue_candidates")
-@patch("handler.find_new_sources")
-def test_scheduled_enqueue_failure_fails_the_invocation(mock_find, mock_enqueue) -> None:
-    from discovery import CandidateSource
-    from enqueue import EnqueueError
-
-    mock_find.return_value = [
-        CandidateSource(
-            source_id="youtube_caption:abc",
-            source_type="youtube_caption",
-            title="Test",
-            url="https://youtube.com/watch?v=abc",
-            doctors=[],
-            topics=[],
-            posted_at=None,
-        )
-    ]
-    mock_enqueue.side_effect = EnqueueError("queue down")
-    with pytest.raises(EnqueueError, match="queue down"):
-        handler({"source": "aws.events"}, None)
-
-
-@patch("handler.find_new_sources")
-def test_scheduled_discovery_failure_does_not_crash(mock_find) -> None:
-    mock_find.side_effect = RuntimeError("catalog unreachable")
-    result = handler({"source": "aws.events"}, None)
     assert result["ok"] is False
-    assert "catalog unreachable" in result["error"]
+    assert "enqueue function" in result["message"]
 
 
 def test_unrecognized_event_falls_back_to_scaffold_response() -> None:
@@ -253,6 +190,51 @@ def test_s3_upload_ingests_curated_doc(mock_load, mock_ingest, monkeypatch) -> N
     assert source.source_id == "curated_doc:labels/enhertu-label.pdf"
     assert source.url == "s3://cht-dev-companion-raw/labels/enhertu-label.pdf"
     assert text.startswith("Enhertu")
+
+
+@patch("handler.ingest_source")
+@patch("handler.load_document")
+def test_s3_markdown_front_matter_sets_citation_url(mock_load, mock_ingest, monkeypatch) -> None:
+    from ingest import IngestResult
+
+    monkeypatch.setenv("RAW_BUCKET_NAME", "cht-dev-companion-raw")
+    mock_load.return_value = (
+        "---\ntitle: About CHM\nurl: https://devapp.communityhealth.media/about\n---\nCHM is a partner.",
+        "about chm",
+    )
+    mock_ingest.return_value = IngestResult(
+        source_id="curated_doc:site/about-chm.md", chunks_total=1, chunks_written=1, chunks_skipped=0
+    )
+
+    handler(_s3_event("site/about-chm.md"), None)
+
+    source, text = mock_ingest.call_args.args
+    assert source.title == "About CHM"
+    assert source.url == "https://devapp.communityhealth.media/about"
+    assert text == "CHM is a partner."
+
+
+@patch("handler.ingest_source")
+@patch("handler.load_document")
+def test_s3_podcast_title_comes_from_mapping(mock_load, mock_ingest, monkeypatch) -> None:
+    from ingest import IngestResult
+    from podcast_metadata import podcast_title, podcast_url
+
+    monkeypatch.setenv("RAW_BUCKET_NAME", "cht-dev-companion-raw")
+    mock_load.return_value = ("transcript text", "podcast6 edit")
+    mock_ingest.return_value = IngestResult(
+        source_id="curated_doc:podcast6_edit.txt",
+        chunks_total=1,
+        chunks_written=1,
+        chunks_skipped=0,
+    )
+
+    handler(_s3_event("podcast6_edit.txt"), None)
+
+    source, _text = mock_ingest.call_args.args
+    assert source.title == podcast_title("podcast6_edit.txt")
+    assert source.url == podcast_url("podcast6_edit.txt")
+    assert "podcast6 edit" not in source.title
 
 
 @patch("handler.ingest_source")

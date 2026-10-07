@@ -20,7 +20,8 @@ companion_ecr_repository_name = "cht-dev-companion"
 kb_ecr_repository_name        = "cht-dev-companion-kb"
 
 companion_image = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion:dev-latest"
-kb_image        = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion-kb:dev-latest"
+kb_image         = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion-kb:dev-latest"
+kb_enqueue_image = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion-kb:dev-latest-enqueue"
 
 db_instance_class          = "db.t4g.small"
 db_engine_version          = "16.9"

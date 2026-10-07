@@ -57,7 +57,12 @@ async def chat(
         ) from exc
 
     stream = (
-        retrieval_chat_stream(body.query, ctx.request_id, shim=True)
+        retrieval_chat_stream(
+            body.query,
+            ctx.request_id,
+            history=[turn.model_dump() for turn in body.history],
+            shim=True,
+        )
         if database_configured()
         else placeholder_chat_stream(body.query, ctx.request_id, shim=True)
     )

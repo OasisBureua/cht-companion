@@ -96,6 +96,7 @@ data "aws_iam_policy_document" "ecs_task" {
     actions = [
       "bedrock:InvokeModel",
       "bedrock:InvokeModelWithResponseStream",
+      "bedrock:Rerank",
       "bedrock:Retrieve",
       "bedrock:RetrieveAndGenerate",
     ]
@@ -148,7 +149,10 @@ data "aws_iam_policy_document" "lambda_kb" {
       "logs:CreateLogStream",
       "logs:PutLogEvents",
     ]
-    resources = ["arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:/aws/lambda/${local.prefix}-kb:*"]
+    resources = [
+      "arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:/aws/lambda/${local.prefix}-kb:*",
+      "arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:/aws/lambda/${local.prefix}-kb-enqueue:*",
+    ]
   }
 
   statement {
