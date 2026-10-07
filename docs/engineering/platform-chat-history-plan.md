@@ -1,5 +1,6 @@
 # cht-platform-tool: what to do for Companion
 
+
 Everything cht-platform-tool needs so the current cht-companion changes work end to end. Sections are in priority order.
 
 | # | Item | Why | Size |
