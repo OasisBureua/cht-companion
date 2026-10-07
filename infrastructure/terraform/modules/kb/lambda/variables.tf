@@ -51,6 +51,11 @@ variable "lambda_memory_mb" {
   default = 1024
 }
 
+variable "platform_catalog_url" {
+  description = "cht-platform-tool public catalog API base (ContentHub proxy), e.g. https://devapp.communityhealth.media/api/catalog"
+  type        = string
+}
+
 variable "schedule_expression" {
   description = "EventBridge schedule for periodic KB refresh"
   type        = string

@@ -37,3 +37,4 @@ companion_max_capacity             = 1
 companion_enable_scheduled_scaling = true
 
 kb_schedule_expression = "rate(1 day)"
+kb_platform_catalog_url = "https://devapp.communityhealth.media/api/catalog"

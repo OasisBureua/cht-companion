@@ -72,6 +72,40 @@ def test_sqs_batch_processes_each_record(mock_ingest) -> None:
 
 @patch("handler.ingest_source")
 @patch("handler.fetch_youtube_transcript")
+def test_sqs_catalog_clip_embeds_summary_without_youtube(mock_fetch, mock_ingest) -> None:
+    from enqueue import candidate_message
+    from ingest import IngestResult
+    from discovery import candidate_for_clip
+
+    mock_ingest.return_value = IngestResult(
+        source_id="catalog_clip:abcdefghijk", chunks_total=1, chunks_written=1, chunks_skipped=0
+    )
+    candidate = candidate_for_clip(
+        {
+            "id": "official:youtube:abcdefghijk",
+            "title": "HER2-low update",
+            "ai_summary": "Dr. Gadi reviews HER2-low treatment options.",
+            "description": "",
+            "doctors": ["Gadi"],
+            "tags": ["biomarker:HER2-low"],
+            "posted_at": "2026-06-26T00:00:00Z",
+        }
+    )
+    event = {"Records": [{"body": json.dumps(candidate_message(candidate))}]}
+
+    result = handler(event, None)
+
+    assert result["ok"] is True
+    mock_fetch.assert_not_called()
+    source, text = mock_ingest.call_args.args
+    assert source.source_type == "catalog_clip"
+    assert source.external_id == "abcdefghijk"
+    assert source.url.endswith("/catalog/clip/abcdefghijk")
+    assert "Summary: Dr. Gadi reviews HER2-low treatment options." in text
+
+
+@patch("handler.ingest_source")
+@patch("handler.fetch_youtube_transcript")
 def test_sqs_without_text_fetches_transcript(mock_fetch, mock_ingest) -> None:
     from ingest import IngestResult
 

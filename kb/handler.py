@@ -6,9 +6,11 @@ Catalog discovery lives in enqueue_handler.py. This function only embeds:
   - {"Records": [{"eventSource": "aws:s3", "s3": {...}}]}              -> drop-zone upload (PDF, docx, text)
   - {"source_id": ..., "source_type": ..., ...}                        -> direct invoke (bootstrap, manual)
 
-`text` is required only when it cannot be fetched. A youtube_caption message
-without `text` triggers a transcript fetch. A permanent miss is reported and
-the message is deleted. A transient fetch failure is raised so SQS retries.
+Catalog clips (catalog_clip) arrive with their ContentHub summary in `text`.
+`text` is required only when it cannot be fetched: a youtube_caption message
+without `text` (bootstrap/manual only) triggers a transcript fetch. A
+permanent miss is reported and the message is deleted. A transient fetch
+failure is raised so SQS retries.
 Embeddings are amazon.titan-embed-text-v2:0 via Bedrock.
 """
 

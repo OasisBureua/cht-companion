@@ -124,9 +124,10 @@ resource "aws_lambda_function" "kb_enqueue" {
 
   environment {
     variables = {
-      CHT_ENVIRONMENT     = var.environment
-      DATABASE_SECRET_ARN = var.database_secret_arn
-      KB_INGEST_QUEUE_URL = aws_sqs_queue.kb_ingest.url
+      CHT_ENVIRONMENT          = var.environment
+      DATABASE_SECRET_ARN      = var.database_secret_arn
+      KB_INGEST_QUEUE_URL      = aws_sqs_queue.kb_ingest.url
+      CHT_PLATFORM_CATALOG_URL = var.platform_catalog_url
     }
   }
 

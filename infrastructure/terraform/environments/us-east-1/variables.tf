@@ -153,3 +153,8 @@ variable "kb_schedule_expression" {
   type    = string
   default = "rate(1 day)"
 }
+
+variable "kb_platform_catalog_url" {
+  description = "cht-platform-tool public catalog API the enqueue Lambda reads (ContentHub is only reachable through it)"
+  type        = string
+}

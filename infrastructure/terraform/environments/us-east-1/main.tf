@@ -296,17 +296,18 @@ module "ecs_companion" {
 module "kb_lambda" {
   source = "../../modules/kb/lambda"
 
-  resource_prefix     = local.resource_prefix
-  environment         = var.environment
-  vpc_id              = local.vpc_id
-  private_subnet_ids  = local.private_subnet_ids
-  kms_key_arn         = aws_kms_key.companion.arn
-  lambda_role_arn     = module.iam.lambda_kb_role_arn
+  resource_prefix         = local.resource_prefix
+  environment             = var.environment
+  vpc_id                  = local.vpc_id
+  private_subnet_ids      = local.private_subnet_ids
+  kms_key_arn             = aws_kms_key.companion.arn
+  lambda_role_arn         = module.iam.lambda_kb_role_arn
   container_image         = var.kb_image
   enqueue_container_image = var.kb_enqueue_image
-  database_secret_arn = module.companion_db.database_secret_arn
-  log_retention_days  = local.log_retention_days
-  schedule_expression = var.kb_schedule_expression
+  database_secret_arn     = module.companion_db.database_secret_arn
+  log_retention_days      = local.log_retention_days
+  schedule_expression     = var.kb_schedule_expression
+  platform_catalog_url    = var.kb_platform_catalog_url
 }
 
 resource "aws_security_group_rule" "rds_from_companion" {

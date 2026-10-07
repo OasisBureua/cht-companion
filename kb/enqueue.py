@@ -1,7 +1,7 @@
 """Enqueue catalog candidates onto the KB ingest queue (CHAT-19).
 
-Messages are metadata only. The SQS worker fetches transcript text itself
-(see transcripts.py) so a long caption never has to fit in a 256KB body.
+Each message carries the clip's summary document in `text` (a few KB, well
+under the 256KB SQS limit), so the embed worker never fetches from YouTube.
 """
 
 from __future__ import annotations
@@ -27,18 +27,20 @@ def _sqs_client():
 
 
 def candidate_message(candidate: CandidateSource) -> dict:
-    """SQS body the worker can ingest once it has fetched `text`."""
-    video_id = candidate.source_id.split(":", 1)[-1]
-    return {
+    """SQS body the embed worker ingests as-is."""
+    body = {
         "source_id": candidate.source_id,
         "source_type": candidate.source_type,
         "title": candidate.title,
         "url": candidate.url,
-        "external_id": video_id,
+        "external_id": candidate.external_id or candidate.source_id.split(":", 1)[-1],
         "doctors": candidate.doctors,
         "topics": candidate.topics,
         "content_date": candidate.posted_at,
     }
+    if candidate.text:
+        body["text"] = candidate.text
+    return body
 
 
 def enqueue_candidates(candidates: list[CandidateSource]) -> list[str]:

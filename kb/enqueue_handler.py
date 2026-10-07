@@ -1,8 +1,10 @@
 """Catalog check for cht-companion-kb.
 
-EventBridge invokes this function. It finds catalog clips that are not in
-cht-companion-db yet and enqueues one metadata message per clip. Transcript
-fetch and Titan embedding happen in handler.py, one SQS message at a time.
+EventBridge invokes this function. It reads the catalog, builds a summary
+document per clip and enqueues one message per clip that is not in
+cht-companion-db yet. Pass {"full_sync": true} on the event to re-enqueue
+every clip so edited summaries are re-embedded. Titan embedding happens in
+handler.py, one SQS message at a time.
 """
 
 from __future__ import annotations
@@ -28,8 +30,9 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             "event_keys": list(event.keys()),
         }
 
+    full_sync = bool(event.get("full_sync"))
     try:
-        candidates = find_new_sources()
+        candidates = find_new_sources(full_sync=full_sync)
     except Exception as exc:  # noqa: BLE001 — catalog/DB failure shouldn't crash the scheduled run
         logger.error("scheduled_discovery_failed", extra={"error": str(exc)})
         return {"ok": False, "message": "cht-companion-kb scheduled discovery failed", "error": str(exc)}
@@ -42,14 +45,20 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     logger.info(
         "scheduled_discovery_enqueued",
-        extra={"action": event.get("action"), "count": len(candidates), "enqueued": len(enqueued)},
+        extra={
+            "action": event.get("action"),
+            "full_sync": full_sync,
+            "count": len(candidates),
+            "enqueued": len(enqueued),
+        },
     )
     return {
         "ok": True,
         "message": (
-            f"cht-companion-kb scheduled reconcile: {len(candidates)} new catalog source(s) found, "
-            f"{len(enqueued)} enqueued for transcript fetch"
+            f"cht-companion-kb scheduled reconcile: {len(candidates)} catalog clip(s) found, "
+            f"{len(enqueued)} enqueued for embedding"
         ),
+        "full_sync": full_sync,
         "candidates_found": len(candidates),
         "enqueued": len(enqueued),
         "candidate_source_ids": enqueued,
