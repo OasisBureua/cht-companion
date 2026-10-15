@@ -219,6 +219,35 @@ resource "aws_service_discovery_http_namespace" "companion" {
   }
 }
 
+# Companion owns the `companion` resource server on the shared pool. Callers
+# (platform, reports) add these scopes to their own M2M app clients.
+resource "aws_cognito_resource_server" "companion" {
+  count = var.cognito_user_pool_id != "" ? 1 : 0
+
+  identifier   = "companion"
+  name         = "CHT Companion AI Gateway"
+  user_pool_id = var.cognito_user_pool_id
+
+  scope {
+    scope_name        = "chat.invoke"
+    scope_description = "POST /chat (RAG chat)"
+  }
+
+  scope {
+    scope_name        = "generate.invoke"
+    scope_description = "POST /generate (plain Bedrock completion)"
+  }
+
+  scope {
+    scope_name        = "admin.manage"
+    scope_description = "/admin knowledge-base management"
+  }
+}
+
+locals {
+  companion_m2m_issuer = var.cognito_user_pool_id != "" ? "https://cognito-idp.${var.aws_region}.amazonaws.com/${var.cognito_user_pool_id}" : ""
+}
+
 module "ecr" {
   source = "../../modules/compute/ecr"
 
@@ -285,6 +314,9 @@ module "ecs_companion" {
   container_image                     = var.companion_image
   database_secret_arn                 = module.companion_db.database_secret_arn
   bff_auth_secret_arn                 = module.bff_auth.secret_arn
+  auth_mode                           = var.companion_auth_mode
+  m2m_issuer                          = local.companion_m2m_issuer
+  m2m_resource                        = var.cognito_user_pool_id != "" ? aws_cognito_resource_server.companion[0].identifier : "companion"
   task_cpu                            = var.companion_task_cpu
   task_memory                         = var.companion_task_memory
   desired_count                       = var.companion_desired_count

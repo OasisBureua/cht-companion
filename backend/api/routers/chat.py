@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from api.auth import CallerContext, caller_context, require_bff_auth
+from api.auth import CallerContext, caller_context, require_scope
 from api.config import API_VERSION
 from api.ratelimit import RateLimitExceeded, check_chat_rate_limit
 from api.schemas import ApiError, ApiErrorBody, ChatRequest
@@ -33,7 +33,7 @@ def _rate_limited(exc: RateLimitExceeded) -> HTTPException:
 async def chat(
     body: ChatRequest,
     request: Request,
-    _auth: None = Depends(require_bff_auth),
+    _auth: None = Depends(require_scope("chat.invoke")),
     ctx: CallerContext = Depends(caller_context),
 ) -> StreamingResponse:
     """SSE RAG answer. Retrieval (SCRUM-196) and Bedrock generation (SCRUM-195 §4.2)

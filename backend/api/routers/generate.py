@@ -6,12 +6,8 @@ chat pipeline. Distinct from /chat: no vector search, no chat history, no
 hardcoded chat system prompt. The caller supplies both system_prompt and
 user_content directly.
 
-Auth reuses require_bff_auth (X-BFF-Auth shared secret) as-is. This is a
-genuine service-to-service call (cht-reports over Service Connect, not a
-browser via the NestJS BFF), but the underlying mechanism, whether the
-caller knows the shared secret, is the same regardless of who's calling,
-and cht-reports gets provisioned the same COMPANION_INTERNAL_SECRET via
-Secrets Manager rather than this needing a second auth scheme.
+Auth: a Cognito M2M token with companion/generate.invoke (cht-reports'
+own app client), or X-BFF-Auth while COMPANION_AUTH_MODE allows it.
 """
 
 from __future__ import annotations
@@ -19,7 +15,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Header, HTTPException
 from starlette.concurrency import run_in_threadpool
 
-from api.auth import require_bff_auth
+from api.auth import require_scope
 from api.bedrock import GenerationError, generate_completion
 from api.config import API_VERSION
 from api.ratelimit import RateLimitExceeded, check_generate_rate_limit
@@ -27,6 +23,8 @@ from api.schemas import ApiError, ApiErrorBody, GenerateRequest, GenerateRespons
 from api.ulid import new_ulid
 
 router = APIRouter(tags=["generate"])
+
+_MAX_REQUEST_ID_LEN = 128
 
 
 def _rate_limited(exc: RateLimitExceeded) -> HTTPException:
@@ -46,10 +44,12 @@ def _rate_limited(exc: RateLimitExceeded) -> HTTPException:
 @router.post("/generate", response_model=GenerateResponse)
 async def generate(
     body: GenerateRequest,
-    _auth: None = Depends(require_bff_auth),
+    _auth: None = Depends(require_scope("generate.invoke")),
     x_client: str | None = Header(default=None, alias="X-Client"),
+    x_request_id: str | None = Header(default=None, alias="X-Request-Id"),
 ) -> GenerateResponse:
-    request_id = new_ulid()
+    # cht-reports sends its reportId so one id traces a report across both services.
+    request_id = (x_request_id or "").strip()[:_MAX_REQUEST_ID_LEN] or new_ulid()
 
     try:
         # Keyed by the caller-supplied X-Client header (same header /chat

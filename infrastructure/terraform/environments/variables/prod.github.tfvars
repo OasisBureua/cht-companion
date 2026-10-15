@@ -8,6 +8,10 @@ ecs_cluster_name                     = "cht-platform-cluster"
 platform_backend_security_group_name = "cht-platform-backend-sg"
 service_connect_namespace_name       = "cht.local"
 
+# Inbound auth: cht-platform-users pool, Cognito M2M tokens only.
+cognito_user_pool_id = "us-east-1_whXKKxAdX"
+companion_auth_mode  = "m2m"
+
 companion_ecr_repository_name = "cht-companion"
 kb_ecr_repository_name        = "cht-companion-kb"
 

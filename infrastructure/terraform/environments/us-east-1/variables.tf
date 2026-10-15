@@ -68,6 +68,19 @@ variable "service_connect_dns_name" {
   default     = "cht-companion"
 }
 
+# Inbound auth (Cognito M2M). Callers' app clients live in their own repos.
+variable "cognito_user_pool_id" {
+  description = "Shared CHT user pool that hosts the companion resource server (empty = no resource server)"
+  type        = string
+  default     = ""
+}
+
+variable "companion_auth_mode" {
+  description = "secret (X-BFF-Auth only), either (token or secret), or m2m (Cognito token only)"
+  type        = string
+  default     = "secret"
+}
+
 # Container images (overridden per deploy in CI)
 variable "companion_image" {
   type = string

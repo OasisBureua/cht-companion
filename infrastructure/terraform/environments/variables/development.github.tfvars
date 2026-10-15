@@ -16,6 +16,10 @@ platform_backend_security_group_name = "cht-dev-backend-sg"
 platform_backend_security_group_ids  = ["sg-0363efdc457aa7341"]
 service_connect_namespace_name       = "cht-dev.local"
 
+# Inbound auth: cht-dev-users pool, Cognito M2M tokens only.
+cognito_user_pool_id = "us-east-1_J51gzfO0I"
+companion_auth_mode  = "m2m"
+
 companion_ecr_repository_name = "cht-dev-companion"
 kb_ecr_repository_name        = "cht-dev-companion-kb"
 

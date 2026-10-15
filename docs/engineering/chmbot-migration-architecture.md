@@ -12,7 +12,7 @@ Migrate the MediaHub-hosted **chmbot** off shared EC2 into a CHT-owned **`cht-co
 | ----- | -------- |
 | Product name | **CHT Companion** |
 | GitHub repo | **`cht-companion`** |
-| GitHub description | CHT Companion — members-only RAG chat API and knowledge-base ingest for Community Health TV (Bedrock, pgvector, Service Connect). |
+| GitHub description | CHT Companion — AI gateway for Community Health TV: RAG chat, report generation and knowledge-base ingest on Bedrock, for internal services over Service Connect (Cognito M2M scopes, pgvector). |
 | Q&A compute | **ECS Fargate** on the **existing** CHT cluster. Not Lambda for answers. Not EKS. |
 | KB ingest | **Lambda `cht-companion-kb`**: code + deps in this repo (`kb/`); **separate deploy lane** from ECS |
 | Networking | Service Connect only + NestJS BFF |
