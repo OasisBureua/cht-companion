@@ -23,11 +23,20 @@ output "companion_service_connect_namespace_arn" {
 }
 
 output "companion_database_endpoint" {
-  value = module.companion_db.db_endpoint
+  value = local.database_endpoint
+}
+
+output "aurora_global_cluster_id" {
+  description = "Read by environments/us-east-2 to attach the secondary (empty when db_engine = rds)"
+  value       = var.db_engine == "aurora" ? module.aurora_global[0].global_cluster_id : ""
+}
+
+output "aurora_engine_version" {
+  value = var.aurora_engine_version
 }
 
 output "companion_database_secret_arn" {
-  value     = module.companion_db.database_secret_arn
+  value     = local.database_secret_arn
   sensitive = true
 }
 

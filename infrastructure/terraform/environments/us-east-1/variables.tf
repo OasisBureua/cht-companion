@@ -105,6 +105,33 @@ variable "kb_ecr_repository_name" {
 }
 
 # Database
+variable "db_engine" {
+  description = "rds (single RDS PostgreSQL instance, dev) or aurora (Aurora PostgreSQL Global writer, prod)"
+  type        = string
+  default     = "rds"
+
+  validation {
+    condition     = contains(["rds", "aurora"], var.db_engine)
+    error_message = "db_engine must be rds or aurora."
+  }
+}
+
+variable "aurora_engine_version" {
+  type    = string
+  default = "15.17"
+}
+
+variable "aurora_instance_class" {
+  type    = string
+  default = "db.r6g.large"
+}
+
+variable "aurora_instance_count" {
+  description = "Instances in the us-east-1 cluster (1 = writer only)"
+  type        = number
+  default     = 1
+}
+
 variable "db_engine_version" {
   type    = string
   default = "16.9"

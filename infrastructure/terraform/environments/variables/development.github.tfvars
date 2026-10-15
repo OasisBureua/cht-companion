@@ -23,7 +23,7 @@ companion_auth_mode  = "m2m"
 companion_ecr_repository_name = "cht-dev-companion"
 kb_ecr_repository_name        = "cht-dev-companion-kb"
 
-companion_image = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion:dev-latest"
+companion_image  = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion:dev-latest"
 kb_image         = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion-kb:dev-latest"
 kb_enqueue_image = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-dev-companion-kb:dev-latest-enqueue"
 
@@ -40,5 +40,5 @@ companion_min_capacity             = 1
 companion_max_capacity             = 1
 companion_enable_scheduled_scaling = true
 
-kb_schedule_expression = "rate(1 day)"
+kb_schedule_expression  = "rate(1 day)"
 kb_platform_catalog_url = "https://devapp.communityhealth.media/api/catalog"
