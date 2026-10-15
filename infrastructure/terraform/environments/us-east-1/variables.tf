@@ -68,13 +68,32 @@ variable "service_connect_dns_name" {
   default     = "cht-companion"
 }
 
+# Inbound auth (Cognito M2M). Callers' app clients live in their own repos.
+variable "cognito_user_pool_id" {
+  description = "Shared CHT user pool that hosts the companion resource server (empty = no resource server)"
+  type        = string
+  default     = ""
+}
+
+variable "companion_auth_mode" {
+  description = "secret (X-BFF-Auth only), either (token or secret), or m2m (Cognito token only)"
+  type        = string
+  default     = "secret"
+}
+
 # Container images (overridden per deploy in CI)
 variable "companion_image" {
   type = string
 }
 
 variable "kb_image" {
-  type = string
+  description = "Embed worker image"
+  type        = string
+}
+
+variable "kb_enqueue_image" {
+  description = "Catalog enqueue image"
+  type        = string
 }
 
 variable "companion_ecr_repository_name" {
@@ -86,6 +105,33 @@ variable "kb_ecr_repository_name" {
 }
 
 # Database
+variable "db_engine" {
+  description = "rds (single RDS PostgreSQL instance, dev) or aurora (Aurora PostgreSQL Global writer, prod)"
+  type        = string
+  default     = "rds"
+
+  validation {
+    condition     = contains(["rds", "aurora"], var.db_engine)
+    error_message = "db_engine must be rds or aurora."
+  }
+}
+
+variable "aurora_engine_version" {
+  type    = string
+  default = "15.17"
+}
+
+variable "aurora_instance_class" {
+  type    = string
+  default = "db.r6g.large"
+}
+
+variable "aurora_instance_count" {
+  description = "Instances in the us-east-1 cluster (1 = writer only)"
+  type        = number
+  default     = 1
+}
+
 variable "db_engine_version" {
   type    = string
   default = "16.9"
@@ -146,4 +192,9 @@ variable "companion_enable_scheduled_scaling" {
 variable "kb_schedule_expression" {
   type    = string
   default = "rate(1 day)"
+}
+
+variable "kb_platform_catalog_url" {
+  description = "cht-platform-tool public catalog API the enqueue Lambda reads (ContentHub is only reachable through it)"
+  type        = string
 }

@@ -66,6 +66,34 @@ variable "database_secret_arn" {
   type = string
 }
 
+variable "bff_auth_secret_arn" {
+  description = "Secrets Manager ARN for COMPANION_INTERNAL_SECRET (plain string secret)"
+  type        = string
+}
+
+variable "auth_mode" {
+  description = "COMPANION_AUTH_MODE: secret (X-BFF-Auth only), either, or m2m (Cognito token only)"
+  type        = string
+  default     = "secret"
+
+  validation {
+    condition     = contains(["secret", "either", "m2m"], var.auth_mode)
+    error_message = "auth_mode must be secret, either or m2m."
+  }
+}
+
+variable "m2m_issuer" {
+  description = "Cognito user pool issuer URL for M2M access tokens"
+  type        = string
+  default     = ""
+}
+
+variable "m2m_resource" {
+  description = "Cognito resource server identifier (token scopes are <id>/<scope>)"
+  type        = string
+  default     = "companion"
+}
+
 variable "task_cpu" {
   type    = number
   default = 512
@@ -94,4 +122,16 @@ variable "max_capacity" {
 variable "enable_scheduled_scaling" {
   type    = bool
   default = false
+}
+
+variable "bedrock_chat_model_id" {
+  description = "Bedrock model ID for Claude chat (converse_stream)"
+  type        = string
+  default     = "us.anthropic.claude-sonnet-5"
+}
+
+variable "bedrock_embed_model_id" {
+  description = "Bedrock model ID for Titan embeddings"
+  type        = string
+  default     = "amazon.titan-embed-text-v2:0"
 }

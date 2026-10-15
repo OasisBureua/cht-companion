@@ -1,5 +1,7 @@
-boto3==1.43.14
-botocore==1.43.14
-psycopg2-binary==2.9.12
+-r requirements-common.txt
+-r requirements-enqueue.txt
+-r requirements-embed.txt
 python-dotenv==1.2.2
 pytest==8.3.4
+google-auth==2.58.0
+google-api-python-client==2.200.0
