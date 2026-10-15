@@ -63,7 +63,9 @@ resource "aws_ecs_task_definition" "companion" {
         { name = "IMAGE_TAG", value = local.container_image_tag },
         { name = "BEDROCK_CHAT_MODEL_ID", value = var.bedrock_chat_model_id },
         { name = "BEDROCK_EMBED_MODEL_ID", value = var.bedrock_embed_model_id },
-        { name = "COMPANION_AUTH_MODE", value = var.auth_mode },
+        # Cognito M2M only. There is no shared secret, and the secret/either
+        # modes would skip auth entirely without one.
+        { name = "COMPANION_AUTH_MODE", value = "m2m" },
         { name = "COMPANION_M2M_ISSUER", value = var.m2m_issuer },
         { name = "COMPANION_M2M_RESOURCE", value = var.m2m_resource },
       ]
@@ -72,10 +74,6 @@ resource "aws_ecs_task_definition" "companion" {
         {
           name      = "DATABASE_URL"
           valueFrom = "${var.database_secret_arn}:url::"
-        },
-        {
-          name      = "COMPANION_INTERNAL_SECRET"
-          valueFrom = var.bff_auth_secret_arn
         },
       ]
 

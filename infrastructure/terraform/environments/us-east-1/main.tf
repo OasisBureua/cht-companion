@@ -42,23 +42,18 @@ data "aws_caller_identity" "current" {}
 # consent flow (kb/scripts/get_youtube_refresh_token.py), not something Terraform
 # can generate, so this secret's contents lie outside Terraform's lifecycle even
 # though the IAM grant to read it is managed here.
-#
-# Name doesn't follow the ${local.resource_prefix}-<name> convention the other
-# companion secrets use (cht-dev-companion-database-secrets, cht-dev-companion-bff-auth)
-# — this one predates being wired into this file and is dev-only; rename to
-# cht-dev-companion-youtube-oauth in a follow-up if/when this is promoted to prod.
 data "aws_secretsmanager_secret" "youtube_oauth" {
-  name = "cht-dev-youtube-oauth"
+  name = var.youtube_oauth_secret_name
 }
 
 locals {
-  is_prod          = var.environment == "prod"
-  resource_prefix  = local.is_prod ? "cht-companion" : "cht-dev-companion"
-  log_retention_days = local.is_prod ? 365 : 7
-  vpc_id             = var.platform_vpc_id != "" ? var.platform_vpc_id : data.aws_vpc.platform[0].id
-  private_subnet_ids = length(var.platform_private_subnet_ids) > 0 ? var.platform_private_subnet_ids : data.aws_subnets.private[0].ids
-  cluster_arn        = var.ecs_cluster_arn != "" ? var.ecs_cluster_arn : data.aws_ecs_cluster.platform[0].arn
-  cluster_name       = var.ecs_cluster_name
+  is_prod                             = var.environment == "prod"
+  resource_prefix                     = local.is_prod ? "cht-companion" : "cht-dev-companion"
+  log_retention_days                  = local.is_prod ? 365 : 7
+  vpc_id                              = var.platform_vpc_id != "" ? var.platform_vpc_id : data.aws_vpc.platform[0].id
+  private_subnet_ids                  = length(var.platform_private_subnet_ids) > 0 ? var.platform_private_subnet_ids : data.aws_subnets.private[0].ids
+  cluster_arn                         = var.ecs_cluster_arn != "" ? var.ecs_cluster_arn : data.aws_ecs_cluster.platform[0].arn
+  cluster_name                        = var.ecs_cluster_name
   platform_backend_security_group_ids = length(var.platform_backend_security_group_ids) > 0 ? var.platform_backend_security_group_ids : [data.aws_security_group.platform_backend[0].id]
 }
 
@@ -292,23 +287,18 @@ module "aurora_global" {
   kms_key_arn             = aws_kms_key.companion.arn
   engine_version          = var.aurora_engine_version
   instance_class          = var.aurora_instance_class
+  serverless_min_capacity = var.aurora_serverless_min_capacity
+  serverless_max_capacity = var.aurora_serverless_max_capacity
   instance_count          = var.aurora_instance_count
   backup_retention_period = var.db_backup_retention_period
   deletion_protection     = local.is_prod
+  secret_replica_regions  = var.secrets_replica_regions
 }
 
 locals {
   database_secret_arn        = var.db_engine == "aurora" ? module.aurora_global[0].database_secret_arn : module.companion_db[0].database_secret_arn
   database_security_group_id = var.db_engine == "aurora" ? module.aurora_global[0].security_group_id : module.companion_db[0].security_group_id
   database_endpoint          = var.db_engine == "aurora" ? module.aurora_global[0].cluster_endpoint : module.companion_db[0].db_endpoint
-}
-
-module "bff_auth" {
-  source = "../../modules/security/bff-auth"
-
-  resource_prefix = local.resource_prefix
-  environment     = var.environment
-  kms_key_arn     = aws_kms_key.companion.arn
 }
 
 module "iam" {
@@ -321,7 +311,6 @@ module "iam" {
   kms_key_arn     = aws_kms_key.companion.arn
   secret_arns = [
     local.database_secret_arn,
-    module.bff_auth.secret_arn,
     data.aws_secretsmanager_secret.youtube_oauth.arn,
   ]
 }
@@ -344,8 +333,6 @@ module "ecs_companion" {
   log_group_name                      = aws_cloudwatch_log_group.companion.name
   container_image                     = var.companion_image
   database_secret_arn                 = local.database_secret_arn
-  bff_auth_secret_arn                 = module.bff_auth.secret_arn
-  auth_mode                           = var.companion_auth_mode
   m2m_issuer                          = local.companion_m2m_issuer
   m2m_resource                        = var.cognito_user_pool_id != "" ? aws_cognito_resource_server.companion[0].identifier : "companion"
   task_cpu                            = var.companion_task_cpu
