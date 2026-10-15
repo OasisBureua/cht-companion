@@ -10,22 +10,31 @@ service_connect_namespace_name       = "cht.local"
 
 # Inbound auth: cht-platform-users pool, Cognito M2M tokens only.
 cognito_user_pool_id = "us-east-1_whXKKxAdX"
-companion_auth_mode  = "m2m"
 
 companion_ecr_repository_name = "cht-companion"
 kb_ecr_repository_name        = "cht-companion-kb"
 
-companion_image  = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-companion:1.0.0"
-kb_image         = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-companion-kb:1.0.0"
-kb_enqueue_image = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-companion-kb:1.0.0-enqueue"
+# deploy-prod.yml overrides these with -var on every run (the tag it just built,
+# or the image prod already runs). Only used for manual applies.
+companion_image  = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-companion:prod-latest"
+kb_image         = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-companion-kb:prod-latest"
+kb_enqueue_image = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-companion-kb:prod-latest-enqueue"
 
 # Aurora PostgreSQL Global: one writer here, read-only secondary in us-east-2
-# (environments/us-east-2), matching cht-platform-tool and cht-content-hub.
-db_engine                  = "aurora"
-aurora_engine_version      = "15.17"
-aurora_instance_class      = "db.r6g.large"
-aurora_instance_count      = 1
-db_backup_retention_period = 14
+# (environments/us-east-2). The secondary is the only thing companion runs in
+# us-east-2; images and the database secret are replicated there.
+db_engine             = "aurora"
+aurora_engine_version = "15.17"
+aurora_instance_class = "db.serverless"
+# Serverless v2 range, also the us-east-2 secondary's (environments/us-east-2 defaults).
+aurora_serverless_min_capacity = 1
+aurora_serverless_max_capacity = 8
+aurora_instance_count          = 1
+db_backup_retention_period     = 14
+
+secrets_replica_regions = ["us-east-2"]
+
+youtube_oauth_secret_name = "cht-companion-youtube-oauth"
 
 companion_task_cpu                 = 512
 companion_task_memory              = 1024

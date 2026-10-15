@@ -1,6 +1,7 @@
-# Aurora PostgreSQL Global Database, same layout as cht-platform-tool and
-# cht-content-hub: primary (writer) in us-east-1, read-only secondary in
-# us-east-2. pgvector needs no parameter; backend/db/migrations/001 runs
+# Aurora PostgreSQL Global Database, same engine as cht-platform-tool and
+# cht-content-hub. role = primary creates the global cluster and writer
+# (us-east-1); role = secondary attaches a read-only cluster (us-east-2).
+# pgvector needs no parameter; backend/db/migrations/001 runs
 # CREATE EXTENSION vector on first start, and the secondary replicates it.
 
 locals {
@@ -110,6 +111,14 @@ resource "aws_rds_cluster" "this" {
 
   db_cluster_parameter_group_name = var.role == "primary" ? aws_rds_cluster_parameter_group.aurora[0].name : null
 
+  dynamic "serverlessv2_scaling_configuration" {
+    for_each = var.instance_class == "db.serverless" ? [1] : []
+    content {
+      min_capacity = var.serverless_min_capacity
+      max_capacity = var.serverless_max_capacity
+    }
+  }
+
   lifecycle {
     precondition {
       condition     = var.role == "primary" || var.global_cluster_identifier != ""
@@ -203,6 +212,14 @@ resource "aws_secretsmanager_secret" "database" {
   description             = "cht-companion database connection (Aurora writer endpoint)"
   recovery_window_in_days = var.environment == "prod" ? 30 : 0
   kms_key_id              = var.kms_key_arn
+
+  # Replicas use the AWS-managed Secrets Manager key in their region.
+  dynamic "replica" {
+    for_each = toset(var.secret_replica_regions)
+    content {
+      region = replica.value
+    }
+  }
 
   tags = {
     Name        = local.database_secret_name

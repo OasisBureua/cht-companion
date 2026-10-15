@@ -75,12 +75,6 @@ variable "cognito_user_pool_id" {
   default     = ""
 }
 
-variable "companion_auth_mode" {
-  description = "secret (X-BFF-Auth only), either (token or secret), or m2m (Cognito token only)"
-  type        = string
-  default     = "secret"
-}
-
 # Container images (overridden per deploy in CI)
 variable "companion_image" {
   type = string
@@ -122,14 +116,39 @@ variable "aurora_engine_version" {
 }
 
 variable "aurora_instance_class" {
-  type    = string
-  default = "db.r6g.large"
+  description = "db.serverless (Serverless v2) or an r-class like db.r6g.large"
+  type        = string
+  default     = "db.serverless"
+}
+
+variable "aurora_serverless_min_capacity" {
+  description = "Serverless v2 minimum ACUs (1 ACU ~ 2 GiB)"
+  type        = number
+  default     = 1
+}
+
+variable "aurora_serverless_max_capacity" {
+  description = "Serverless v2 maximum ACUs"
+  type        = number
+  default     = 8
 }
 
 variable "aurora_instance_count" {
   description = "Instances in the us-east-1 cluster (1 = writer only)"
   type        = number
   default     = 1
+}
+
+variable "youtube_oauth_secret_name" {
+  description = "Manually created YouTube OAuth secret (cht-dev-youtube-oauth in dev, cht-companion-youtube-oauth in prod)"
+  type        = string
+  default     = "cht-dev-youtube-oauth"
+}
+
+variable "secrets_replica_regions" {
+  description = "Regions to replicate companion-owned secrets to (Aurora database secret)"
+  type        = list(string)
+  default     = []
 }
 
 variable "db_engine_version" {
