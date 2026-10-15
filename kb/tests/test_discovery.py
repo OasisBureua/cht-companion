@@ -7,6 +7,7 @@ from discovery import (
     CandidateSource,
     _source_id_for_clip,
     candidate_for_clip,
+    clean_description,
     clip_document,
     clip_page_url,
     clip_topics,
@@ -97,6 +98,45 @@ def test_clip_document_skips_refusal_summary_and_uses_description() -> None:
     text = clip_document(item, [], [])
     assert "Summary:" not in text
     assert "Description: Longer YouTube description." in text
+
+
+YOUTUBE_DESCRIPTION = """Can neoadjuvant T-DXd improve pCR?
+
+Dr. Abi Siva and Dr. Carey Anders discuss DESTINY-Breast11.
+
+Subscribe for more expert oncology discussions.
+
+#AbiSiva #CareyAnders #DESTINYBreast11 #CHM
+–
+
+Thanks for watching!
+
+Our podcasts are also available on:
+ • Spotify - https://spotf.fi/chm-podcast
+
+–
+
+Community Health Media (CHM) is your full service healthcare communications partner.
+
+Learn more about us here - https://communityhealth.media"""
+
+
+def test_clean_description_drops_channel_footer_and_hashtags() -> None:
+    assert clean_description(YOUTUBE_DESCRIPTION) == (
+        "Can neoadjuvant T-DXd improve pCR?\n\nDr. Abi Siva and Dr. Carey Anders discuss DESTINY-Breast11."
+    )
+
+
+def test_clip_document_never_includes_chm_blurb() -> None:
+    text = clip_document(_clip("abc", ai_summary="", description=YOUTUBE_DESCRIPTION), [], [])
+    assert "DESTINY-Breast11" in text
+    assert "Community Health Media" not in text
+    assert "Spotify" not in text
+
+
+def test_clip_document_empty_when_description_is_only_footer() -> None:
+    footer = YOUTUBE_DESCRIPTION.split("–", 1)[1]
+    assert clip_document(_clip("abc", ai_summary="", description=footer), [], []) == ""
 
 
 def test_clip_document_empty_when_no_usable_text() -> None:

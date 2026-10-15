@@ -232,6 +232,11 @@ def upsert_chunks(
         )
         written += 1
 
+    # A shorter document must not leave its old tail chunks searchable.
+    conn.execute(
+        "DELETE FROM chunks WHERE source_id = %s AND chunk_index >= %s",
+        (source.source_id, len(chunks)),
+    )
     conn.execute(
         "UPDATE sources SET chunk_count = %s, last_ingested_at = NOW(), updated_at = NOW() "
         "WHERE source_id = %s",

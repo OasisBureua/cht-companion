@@ -46,6 +46,7 @@ If the endpoint ever needs auth or moves, tell cht-companion first: the Lambda r
 In `frontend/src/pages/CompanionChat.tsx`:
 
 - Move the chips **below** the answer text (they render above it today, at `mb-2`).
+- Only show chips for citations the answer actually cites. The companion emits a citation event for every retrieved source (up to 8) before the answer streams, and many of them go unused. Once the stream finishes, keep the citations whose `[cN]` appears in the answer text. If the answer cites none (for example "the knowledge base does not cover it"), show no chips.
 - Dedupe chips by `source_id`, not `citation_id`. Keep the full citation list in message state so inline `[cN]` markers in `renderAssistantText` still resolve, including older answers that had several citations for one source.
 - Internal links: `catalog_clip` URLs (and site pages) point at the platform itself. When `new URL(c.url).origin === window.location.origin`, navigate with React Router (`<Link to={pathname}>`) instead of opening a new tab. Keep `target="_blank"` for YouTube and other external URLs. Apply the same rule to the inline `[cN]` links.
 - Optional: label chips by type, e.g. a video icon for `catalog_clip` / `youtube_caption` and a page icon for `curated_doc`.

@@ -94,6 +94,36 @@ def _usable(text: str | None) -> str:
     return "" if is_refusal(t) else t
 
 
+# Every YouTube description ends with the same channel footer (podcast links,
+# then the CHM company blurb). Left in, it makes every clip match questions
+# about CHM itself.
+_FOOTER_STARTS = (
+    "thanks for watching",
+    "our podcasts are also available",
+    "community health media (chm) is",
+    "learn more about us",
+)
+_PROMO_STARTS = ("subscribe for more", "watch the full")
+_SEPARATORS = {"-", "–", "—", "---", "___"}
+
+
+def clean_description(text: str | None) -> str:
+    """Clip description without the channel footer, hashtags or subscribe lines."""
+    kept: list[str] = []
+    for line in (text or "").splitlines():
+        stripped = line.strip()
+        lower = stripped.lower()
+        if stripped in _SEPARATORS or lower.startswith(_FOOTER_STARTS):
+            break
+        if lower.startswith(_PROMO_STARTS):
+            continue
+        words = stripped.split()
+        if words and all(word.startswith("#") for word in words):
+            continue
+        kept.append(stripped)
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
+
+
 def unique_doctors(doctors: list[str]) -> list[str]:
     """Drop spelling variants such as "O'shaughnessy" / "Oshaughnessy"."""
     seen: set[str] = set()
@@ -120,7 +150,7 @@ def clip_topics(tags: list[str]) -> list[str]:
 def clip_document(item: dict, doctors: list[str], topics: list[str]) -> str:
     """Text embedded for one clip. Empty when there is nothing usable."""
     summary = _usable(item.get("ai_summary") or item.get("aiSummary"))
-    description = _usable(item.get("description"))
+    description = _usable(clean_description(item.get("description")))
     if not summary and not description:
         return ""
 
