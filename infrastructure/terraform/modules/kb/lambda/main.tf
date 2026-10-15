@@ -13,6 +13,17 @@ resource "aws_cloudwatch_log_group" "kb" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "kb_enqueue" {
+  name              = "/aws/lambda/${local.prefix}-kb-enqueue"
+  retention_in_days = var.log_retention_days
+  kms_key_id        = var.kms_key_arn
+
+  tags = {
+    Name        = "${local.prefix}-kb-enqueue-logs"
+    Environment = var.environment
+  }
+}
+
 resource "aws_security_group" "kb_lambda" {
   name        = "${local.prefix}-kb-sg"
   description = "Security group for cht-companion-kb Lambda"
@@ -81,6 +92,7 @@ resource "aws_lambda_function" "kb" {
       CHT_ENVIRONMENT = var.environment
       DATABASE_SECRET_ARN = var.database_secret_arn
       KB_INGEST_QUEUE_URL = aws_sqs_queue.kb_ingest.url
+      RAW_BUCKET_NAME     = aws_s3_bucket.raw.id
     }
   }
 
@@ -95,6 +107,41 @@ resource "aws_lambda_function" "kb" {
   }
 }
 
+# Catalog check only. Built from kb/Dockerfile.enqueue.
+# EventBridge invokes this; it never embeds.
+resource "aws_lambda_function" "kb_enqueue" {
+  function_name = "${local.prefix}-kb-enqueue"
+  role          = var.lambda_role_arn
+  package_type  = "Image"
+  image_uri     = var.enqueue_container_image
+  timeout       = 180
+  memory_size   = 512
+
+  vpc_config {
+    subnet_ids         = var.private_subnet_ids
+    security_group_ids = [aws_security_group.kb_lambda.id]
+  }
+
+  environment {
+    variables = {
+      CHT_ENVIRONMENT          = var.environment
+      DATABASE_SECRET_ARN      = var.database_secret_arn
+      KB_INGEST_QUEUE_URL      = aws_sqs_queue.kb_ingest.url
+      CHT_PLATFORM_CATALOG_URL = var.platform_catalog_url
+    }
+  }
+
+  logging_config {
+    log_format = "JSON"
+    log_group  = aws_cloudwatch_log_group.kb_enqueue.name
+  }
+
+  tags = {
+    Name        = "${local.prefix}-kb-enqueue"
+    Environment = var.environment
+  }
+}
+
 resource "aws_lambda_event_source_mapping" "kb_sqs" {
   event_source_arn = aws_sqs_queue.kb_ingest.arn
   function_name    = aws_lambda_function.kb.arn
@@ -104,7 +151,7 @@ resource "aws_lambda_event_source_mapping" "kb_sqs" {
 
 resource "aws_cloudwatch_event_rule" "kb_scheduled" {
   name                = "${local.prefix}-kb-schedule"
-  description         = "Scheduled KB corpus refresh (captions/embeddings)"
+  description         = "Daily catalog check. Enqueues new clips; the embed function consumes the queue."
   schedule_expression = var.schedule_expression
 
   tags = {
@@ -115,19 +162,106 @@ resource "aws_cloudwatch_event_rule" "kb_scheduled" {
 
 resource "aws_cloudwatch_event_target" "kb_scheduled" {
   rule      = aws_cloudwatch_event_rule.kb_scheduled.name
-  target_id = "kb-lambda"
-  arn       = aws_lambda_function.kb.arn
+  target_id = "kb-enqueue"
+  arn       = aws_lambda_function.kb_enqueue.arn
 
   input = jsonencode({
-    source  = "eventbridge.schedule"
-    action  = "scheduled_refresh"
+    source = "eventbridge.schedule"
+    action = "scheduled_refresh"
   })
 }
 
 resource "aws_lambda_permission" "kb_eventbridge" {
   statement_id  = "AllowExecutionFromEventBridge"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.kb.function_name
+  function_name = aws_lambda_function.kb_enqueue.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.kb_scheduled.arn
+}
+
+# Drop zone for PDFs and other documents. ObjectCreated invokes this Lambda;
+# documents.py extracts text and the existing ingest path embeds it.
+resource "aws_s3_bucket" "raw" {
+  bucket = "${local.prefix}-raw"
+
+  tags = {
+    Name        = "${local.prefix}-raw"
+    Environment = var.environment
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "raw" {
+  bucket                  = aws_s3_bucket.raw.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "raw" {
+  bucket = aws_s3_bucket.raw.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "raw" {
+  bucket = aws_s3_bucket.raw.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = var.kms_key_arn
+    }
+    bucket_key_enabled = true
+  }
+}
+
+data "aws_iam_policy_document" "raw_bucket" {
+  statement {
+    sid    = "DenyInsecureTransport"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = ["s3:*"]
+    resources = [
+      aws_s3_bucket.raw.arn,
+      "${aws_s3_bucket.raw.arn}/*",
+    ]
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "raw" {
+  bucket = aws_s3_bucket.raw.id
+  policy = data.aws_iam_policy_document.raw_bucket.json
+}
+
+resource "aws_lambda_permission" "kb_s3" {
+  statement_id  = "AllowExecutionFromS3"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.kb.function_name
+  principal     = "s3.amazonaws.com"
+  source_arn    = aws_s3_bucket.raw.arn
+}
+
+resource "aws_s3_bucket_notification" "raw" {
+  bucket = aws_s3_bucket.raw.id
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.kb.arn
+    events              = ["s3:ObjectCreated:*"]
+  }
+
+  depends_on = [aws_lambda_permission.kb_s3]
 }

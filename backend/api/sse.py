@@ -5,11 +5,14 @@ from __future__ import annotations
 import json
 import logging
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from typing import Any
 
-from api.bedrock import GenerationError, embed_query, stream_generation
-from api.retrieval import RetrievedChunk, build_citation_url, build_snippet, retrieve
+from starlette.concurrency import run_in_threadpool
+
+from api.bedrock import GenerationError, stream_generation
+from api.rag import RagResult, find_sources
+from api.retrieval import SourceContext, build_citation_url, build_snippet
 from api.schemas import CitationEvent, DoneEvent, ErrorEvent, TokenEvent
 
 logger = logging.getLogger("cht-companion.chat")
@@ -48,36 +51,36 @@ def emit_done(event: DoneEvent, *, shim: bool = True) -> list[str]:
     return lines
 
 
-def _citation_from_chunk(chunk: RetrievedChunk, citation_id: str) -> CitationEvent:
+def _citation_from_source(source: SourceContext, citation_id: str) -> CitationEvent:
+    """One citation per source. Snippet, timestamp and chunk_id come from the
+    source's best-ranked chunk."""
+    best = source.best
     return CitationEvent(
         citation_id=citation_id,
-        source_id=chunk.source_id,
-        chunk_id=chunk.chunk_id,
-        source_type=chunk.source_type,
-        title=chunk.title,
-        url=build_citation_url(chunk.url, chunk.timestamp_start),
-        playlist_url=chunk.playlist_url,
-        snippet=build_snippet(chunk.text),
-        timestamp=chunk.timestamp_start,
+        source_id=source.source_id,
+        chunk_id=best.chunk_id,
+        source_type=source.source_type,
+        title=source.title,
+        url=build_citation_url(source.url, best.timestamp_start),
+        playlist_url=source.playlist_url,
+        snippet=build_snippet(best.text),
+        timestamp=best.timestamp_start,
     )
 
 
-def _build_context_block(chunks: list[RetrievedChunk]) -> str:
-    """Uses context_text (the matched chunk plus its immediate same-source
-    neighbors — see retrieval.py's sibling-chunk join) so generation isn't cut
-    off at a fixed chunk boundary. Citations (_citation_from_chunk) still point
-    at the specific matched chunk's own text/timestamp, not the extended window.
-    """
-    parts = []
-    for i, chunk in enumerate(chunks):
-        parts.append(f"[c{i + 1}] ({chunk.title}): {chunk.context_text}")
-    return "\n\n".join(parts)
+def _build_context_block(sources: list[SourceContext]) -> str:
+    """One labeled block per source: every retrieved passage from it, merged
+    with neighbor chunks so an answer is not cut off at a chunk boundary."""
+    return "\n\n".join(
+        f"[c{i + 1}] ({source.title}):\n{source.context_text}" for i, source in enumerate(sources)
+    )
 
 
 async def retrieval_chat_stream(
     query: str,
     request_id: str,
     *,
+    history: Sequence[dict] = (),
     shim: bool = True,
 ) -> AsyncIterator[str]:
     """Real retrieval + real Bedrock generation (SCRUM-196 §5.4, SCRUM-195 §4.2).
@@ -86,12 +89,14 @@ async def retrieval_chat_stream(
     without context). Generation failure is terminal (llm_timeout, stream ends).
     """
     t0 = time.monotonic()
-    chunks: list[RetrievedChunk] = []
+    sources: list[SourceContext] = []
+    rag: RagResult | None = None
     retrieval_ms = 0
 
     try:
-        embedding = embed_query(query)
-        chunks = retrieve(embedding)
+        # Embed, search and rerank all block on boto3/psycopg.
+        rag = await run_in_threadpool(find_sources, query, list(history), request_id=request_id)
+        sources = rag.sources
     except Exception as exc:
         # Non-terminal — generation still runs without citations. Embed failures
         # and DB/pgvector errors both map to retrieval_degraded so a bad
@@ -118,17 +123,24 @@ async def retrieval_chat_stream(
     finally:
         retrieval_ms = int((time.monotonic() - t0) * 1000)
 
-    for i, chunk in enumerate(chunks):
-        yield emit_citation(_citation_from_chunk(chunk, citation_id=f"c{i + 1}"))
+    for i, source in enumerate(sources):
+        yield emit_citation(_citation_from_source(source, citation_id=f"c{i + 1}"))
 
-    context_block = _build_context_block(chunks)
+    context_block = _build_context_block(sources)
     logger.info(
         "%s",
         json.dumps(
             {
                 "event": "chat_retrieval",
                 "request_id": request_id,
-                "citations": len(chunks),
+                "citations": len(sources),
+                "chunks": sum(len(s.hits) for s in sources),
+                "candidates": rag.candidates if rag else 0,
+                "reranked": rag.reranked if rag else False,
+                "rewritten": bool(rag and rag.search_query != query),
+                "top_distance": rag.top_distance if rag else None,
+                "top_rerank_score": rag.top_rerank_score if rag else None,
+                "history_turns": len(history),
                 "retrieval_ms": retrieval_ms,
                 "query_chars": len(query),
             },
@@ -139,7 +151,7 @@ async def retrieval_chat_stream(
     index = 0
     first_token_ms = None
     finish_reason = "complete"
-    generator = stream_generation(query, context_block, request_id=request_id)
+    generator = stream_generation(query, context_block, history=list(history), request_id=request_id)
     try:
         while True:
             try:
@@ -186,7 +198,7 @@ async def retrieval_chat_stream(
                 "event": "chat_done",
                 "request_id": request_id,
                 "finish_reason": finish_reason,
-                "citations_emitted": len(chunks),
+                "citations_emitted": len(sources),
                 "token_deltas": index,
                 "latency_ms": {
                     "retrieval": retrieval_ms,
@@ -201,7 +213,7 @@ async def retrieval_chat_stream(
         DoneEvent(
             finish_reason=finish_reason,
             tokens_generated=index,
-            citations_emitted=len(chunks),
+            citations_emitted=len(sources),
             latency_ms={
                 "retrieval": retrieval_ms,
                 "first_token": first_token_ms or total_ms,

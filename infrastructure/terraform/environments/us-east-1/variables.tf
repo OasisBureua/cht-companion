@@ -87,7 +87,13 @@ variable "companion_image" {
 }
 
 variable "kb_image" {
-  type = string
+  description = "Embed worker image"
+  type        = string
+}
+
+variable "kb_enqueue_image" {
+  description = "Catalog enqueue image"
+  type        = string
 }
 
 variable "companion_ecr_repository_name" {
@@ -159,4 +165,9 @@ variable "companion_enable_scheduled_scaling" {
 variable "kb_schedule_expression" {
   type    = string
   default = "rate(1 day)"
+}
+
+variable "kb_platform_catalog_url" {
+  description = "cht-platform-tool public catalog API the enqueue Lambda reads (ContentHub is only reachable through it)"
+  type        = string
 }

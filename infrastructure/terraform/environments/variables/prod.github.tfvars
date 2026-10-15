@@ -16,7 +16,8 @@ companion_ecr_repository_name = "cht-companion"
 kb_ecr_repository_name        = "cht-companion-kb"
 
 companion_image = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-companion:1.0.0"
-kb_image        = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-companion-kb:1.0.0"
+kb_image         = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-companion-kb:1.0.0"
+kb_enqueue_image = "233636046512.dkr.ecr.us-east-1.amazonaws.com/cht-companion-kb:1.0.0-enqueue"
 
 db_instance_class          = "db.t4g.small"
 db_engine_version          = "16.9"
@@ -32,3 +33,4 @@ companion_max_capacity             = 4
 companion_enable_scheduled_scaling = false
 
 kb_schedule_expression = "rate(1 day)"
+kb_platform_catalog_url = "https://app.communityhealth.media/api/catalog"
