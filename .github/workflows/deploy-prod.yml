@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       plan_only:
-        description: 'Plan only: skip ECS/Lambda roll'
+        description: 'Plan only: build images and show the Terraform plan, apply nothing'
         type: boolean
         default: false
       deploy_all:
@@ -22,6 +22,14 @@ env:
   ECR_BACKEND_REPO: cht-companion
   ECR_WORKER_REPO: cht-companion-kb
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  TERRAFORM_VERSION: 1.10.5
+  TF_ENV_DIR: infrastructure/terraform/environments/us-east-1
+  TF_BACKEND_CONFIG: ../backends/us-east-1-prod.hcl
+  TF_VARS_FILE: ../variables/prod.github.tfvars
+  TF_DR_ENV_DIR: infrastructure/terraform/environments/us-east-2
+  TF_DR_BACKEND_CONFIG: ../backends/us-east-2-prod.hcl
+  ECS_CLUSTER: cht-platform-cluster
+  ECS_SERVICE: cht-companion
 
 permissions:
   id-token: write
@@ -127,7 +135,12 @@ jobs:
     name: Deploy to prod
     runs-on: ubuntu-latest
     needs: [gate, changes, test]
-    if: needs.changes.outputs.deploy_backend == 'true' || needs.changes.outputs.deploy_kb == 'true'
+    # test is skipped for infra-only changes; still deploy then.
+    if: >-
+      always() && !failure() && !cancelled() &&
+      (needs.changes.outputs.deploy_backend == 'true' ||
+       needs.changes.outputs.deploy_kb == 'true' ||
+       needs.changes.outputs.deploy_infra == 'true')
     environment: prod
     steps:
       - uses: actions/checkout@v6
@@ -187,25 +200,133 @@ jobs:
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:prod-latest-enqueue
           cache-from: type=gha,scope=kb-enqueue
           cache-to: type=gha,mode=max,scope=kb-enqueue
-      - name: Update embed Lambda
-        if: needs.changes.outputs.deploy_kb == 'true' && github.event.inputs.plan_only != 'true'
+      # Terraform owns the ECS task definition and both Lambdas' image_uri, so it
+      # does the rollout. Images built in this run get the new tag; images not
+      # rebuilt keep whatever prod runs now (prod-latest before the first deploy).
+      - name: Resolve image URIs
+        id: images
+        env:
+          TAG: ${{ steps.meta.outputs.image_tag }}
+          BUILT_BACKEND: ${{ needs.changes.outputs.deploy_backend }}
+          BUILT_KB: ${{ needs.changes.outputs.deploy_kb }}
         run: |
-          if ! aws lambda get-function --function-name cht-companion-kb --region "$AWS_REGION" >/dev/null 2>&1; then
-            echo "Lambda cht-companion-kb not provisioned yet."
-            exit 0
+          backend_repo="$ECR_REGISTRY/$ECR_BACKEND_REPO"
+          kb_repo="$ECR_REGISTRY/$ECR_WORKER_REPO"
+
+          current_lambda_image() {
+            aws lambda get-function --function-name "$1" --region "$AWS_REGION" \
+              --query 'Code.ImageUri' --output text 2>/dev/null || true
+          }
+
+          if [ "$BUILT_BACKEND" = "true" ]; then
+            companion="$backend_repo:$TAG"
+          else
+            td="$(aws ecs describe-services --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE" --region "$AWS_REGION" \
+              --query 'services[?status==`ACTIVE`].taskDefinition | [0]' --output text 2>/dev/null || true)"
+            companion=""
+            if [ -n "$td" ] && [ "$td" != "None" ]; then
+              companion="$(aws ecs describe-task-definition --task-definition "$td" --region "$AWS_REGION" \
+                --query 'taskDefinition.containerDefinitions[0].image' --output text)"
+            fi
+            companion="${companion:-$backend_repo:prod-latest}"
           fi
-          aws lambda update-function-code \
-            --function-name cht-companion-kb \
-            --image-uri "${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}" \
-            --region "$AWS_REGION"
-      - name: Update enqueue Lambda
-        if: needs.changes.outputs.deploy_kb == 'true' && github.event.inputs.plan_only != 'true'
+
+          if [ "$BUILT_KB" = "true" ]; then
+            kb="$kb_repo:$TAG"
+            enqueue="$kb_repo:$TAG-enqueue"
+          else
+            kb="$(current_lambda_image cht-companion-kb)"
+            enqueue="$(current_lambda_image cht-companion-kb-enqueue)"
+            kb="${kb:-$kb_repo:prod-latest}"
+            enqueue="${enqueue:-$kb_repo:prod-latest-enqueue}"
+          fi
+
+          {
+            echo "companion=$companion"
+            echo "kb=$kb"
+            echo "enqueue=$enqueue"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "### Prod images"
+            echo "| Component | Image |"
+            echo "| --- | --- |"
+            echo "| companion | \`$companion\` |"
+            echo "| kb embed | \`$kb\` |"
+            echo "| kb enqueue | \`$enqueue\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_ENV_DIR }}
+        run: terraform init -input=false -reconfigure -backend-config="${{ env.TF_BACKEND_CONFIG }}"
+
+      - name: Terraform plan
+        working-directory: ${{ env.TF_ENV_DIR }}
         run: |
-          if ! aws lambda get-function --function-name cht-companion-kb-enqueue --region "$AWS_REGION" >/dev/null 2>&1; then
-            echo "Lambda cht-companion-kb-enqueue not provisioned yet."
-            exit 0
-          fi
-          aws lambda update-function-code \
-            --function-name cht-companion-kb-enqueue \
-            --image-uri "${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}-enqueue" \
+          terraform plan -input=false \
+            -var-file="${{ env.TF_VARS_FILE }}" \
+            -var "companion_image=${{ steps.images.outputs.companion }}" \
+            -var "kb_image=${{ steps.images.outputs.kb }}" \
+            -var "kb_enqueue_image=${{ steps.images.outputs.enqueue }}" \
+            -out=tfplan
+          terraform show -no-color tfplan > tfplan.txt
+          {
+            echo "### Terraform plan (prod, us-east-1)"
+            echo '```'
+            grep -E '^\s+# |^Plan:|^No changes' tfplan.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Terraform apply
+        if: github.event.inputs.plan_only != 'true'
+        working-directory: ${{ env.TF_ENV_DIR }}
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Wait for ECS service stable
+        if: github.event.inputs.plan_only != 'true'
+        run: |
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
             --region "$AWS_REGION"
+
+      # us-east-2 holds only the Aurora read-only secondary. It reads the global
+      # cluster ID from us-east-1 state, so it can't plan until us-east-1 has
+      # created the cluster (first plan_only run skips it).
+      - name: Check Aurora global cluster (us-east-1 state)
+        id: global
+        working-directory: ${{ env.TF_ENV_DIR }}
+        run: |
+          id="$(terraform output -raw aurora_global_cluster_id 2>/dev/null || true)"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          if [ -z "$id" ]; then
+            echo "### us-east-2 skipped: no Aurora global cluster in us-east-1 state yet" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Terraform init (us-east-2)
+        if: steps.global.outputs.id != ''
+        working-directory: ${{ env.TF_DR_ENV_DIR }}
+        run: terraform init -input=false -reconfigure -backend-config="${{ env.TF_DR_BACKEND_CONFIG }}"
+
+      - name: Terraform plan (us-east-2)
+        if: steps.global.outputs.id != ''
+        working-directory: ${{ env.TF_DR_ENV_DIR }}
+        run: |
+          terraform plan -input=false -out=tfplan
+          terraform show -no-color tfplan > tfplan.txt
+          {
+            echo "### Terraform plan (prod, us-east-2 Aurora secondary)"
+            echo '```'
+            grep -E '^\s+# |^Plan:|^No changes' tfplan.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Terraform apply (us-east-2)
+        if: steps.global.outputs.id != '' && github.event.inputs.plan_only != 'true'
+        working-directory: ${{ env.TF_DR_ENV_DIR }}
+        run: terraform apply -input=false -auto-approve tfplan

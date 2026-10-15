@@ -101,6 +101,8 @@ module "aurora_global" {
   kms_key_arn               = aws_kms_key.companion.arn
   engine_version            = data.terraform_remote_state.primary.outputs.aurora_engine_version
   instance_class            = var.aurora_instance_class
+  serverless_min_capacity   = var.aurora_serverless_min_capacity
+  serverless_max_capacity   = var.aurora_serverless_max_capacity
   instance_count            = var.aurora_instance_count
   global_cluster_identifier = local.global_cluster_id
   backup_retention_period   = var.backup_retention_period

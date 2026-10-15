@@ -8,7 +8,7 @@ variable "environment" {
 }
 
 variable "role" {
-  description = "primary (us-east-1 writer) or secondary (us-east-2 read-only cluster)"
+  description = "primary (writer, creates the global cluster) or secondary (read-only cluster in another region)"
   type        = string
 
   validation {
@@ -25,15 +25,38 @@ variable "private_subnet_ids" {
   type = list(string)
 }
 
+variable "secret_replica_regions" {
+  description = "Regions to replicate the database secret to (primary only)"
+  type        = list(string)
+  default     = []
+}
+
 variable "kms_key_arn" {
   description = "KMS key in this region for storage, Performance Insights and the database secret"
   type        = string
 }
 
 variable "instance_class" {
-  description = "Aurora instance class. Global databases need r-class (or Serverless v2)."
+  description = "Aurora instance class. Global databases need db.serverless (Serverless v2) or an r-class."
   type        = string
-  default     = "db.r6g.large"
+  default     = "db.serverless"
+}
+
+variable "serverless_min_capacity" {
+  description = "Serverless v2 minimum ACUs (1 ACU ~ 2 GiB). Global databases can't pause at 0."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.serverless_min_capacity >= 0.5
+    error_message = "serverless_min_capacity must be at least 0.5 for a global database"
+  }
+}
+
+variable "serverless_max_capacity" {
+  description = "Serverless v2 maximum ACUs"
+  type        = number
+  default     = 8
 }
 
 variable "instance_count" {

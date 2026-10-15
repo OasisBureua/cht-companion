@@ -16,8 +16,21 @@ variable "dr_vpc_name" {
 }
 
 variable "aurora_instance_class" {
-  type    = string
-  default = "db.r6g.large"
+  description = "db.serverless (Serverless v2) or an r-class like db.r6g.large"
+  type        = string
+  default     = "db.serverless"
+}
+
+variable "aurora_serverless_min_capacity" {
+  description = "Serverless v2 minimum ACUs (1 ACU ~ 2 GiB)"
+  type        = number
+  default     = 1
+}
+
+variable "aurora_serverless_max_capacity" {
+  description = "Serverless v2 maximum ACUs"
+  type        = number
+  default     = 8
 }
 
 variable "aurora_instance_count" {

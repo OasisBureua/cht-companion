@@ -5,7 +5,6 @@ locals {
   # secrets created outside the current apply graph.
   execution_secret_resources = length(var.secret_arns) > 0 ? var.secret_arns : [
     "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:${local.prefix}-database-secrets-*",
-    "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:${local.prefix}-bff-auth-*",
   ]
 }
 

@@ -66,22 +66,6 @@ variable "database_secret_arn" {
   type = string
 }
 
-variable "bff_auth_secret_arn" {
-  description = "Secrets Manager ARN for COMPANION_INTERNAL_SECRET (plain string secret)"
-  type        = string
-}
-
-variable "auth_mode" {
-  description = "COMPANION_AUTH_MODE: secret (X-BFF-Auth only), either, or m2m (Cognito token only)"
-  type        = string
-  default     = "secret"
-
-  validation {
-    condition     = contains(["secret", "either", "m2m"], var.auth_mode)
-    error_message = "auth_mode must be secret, either or m2m."
-  }
-}
-
 variable "m2m_issuer" {
   description = "Cognito user pool issuer URL for M2M access tokens"
   type        = string
