@@ -45,10 +45,11 @@ def create_app() -> FastAPI:
     application = FastAPI(
         title="cht-companion",
         description=(
-            "Members-only RAG chat API, called via the CHT NestJS BFF. Also "
-            "exposes /generate, a plain Bedrock completion endpoint for "
-            "service-to-service callers (cht-reports) that assemble their "
-            "own context."
+            "AI gateway for CHT services. /chat is RAG chat over the knowledge "
+            "base, called via the platform BFF. /generate is a plain Bedrock "
+            "completion for callers (cht-reports) that assemble their own "
+            "context. Callers authenticate with Cognito M2M scopes or, during "
+            "migration, X-BFF-Auth."
         ),
         version=IMAGE_TAG,
         lifespan=lifespan,

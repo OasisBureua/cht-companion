@@ -13,15 +13,10 @@ explicitly enabled "allow third-party contributions" for that specific
 caption (a YouTube Studio setting, separate from API/OAuth access — owning
 the channel and having a valid OAuth grant is not sufficient by itself).
 
-CHM already has a working, unrelated transcription pipeline for this exact
-problem: yt-dlp downloads the video directly (no YouTube caption API
-involved at all), a local WhisperX service transcribes it (see
-~/code/chm/chm-medical-chatbot/transcribe_youtube_videos.py for the
-reference implementation). That pipeline runs locally, not from this Lambda
-— wiring it into cht-companion-kb's ingest path is real, separate,
-unscoped work (architecture question: does WhisperX get its own cloud
-service, or does this stay a locally-run step feeding the same DB?). Not
-addressed in this module.
+Transcript *text* for ingest is fetched in transcripts.py from the player
+caption track (the same auto-captions YouTube already generated). This
+module stays metadata-only: it answers "does a human-authored track exist?"
+which captions.list can do and captions.download cannot.
 """
 
 from __future__ import annotations

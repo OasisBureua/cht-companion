@@ -166,7 +166,7 @@ jobs:
           echo "| Lane | Run |" >> "$GITHUB_STEP_SUMMARY"
           echo "|------|-----|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Backend (ECS cht-companion) | ${{ needs.changes.outputs.deploy_backend }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| KB (Lambda cht-companion-kb) | ${{ needs.changes.outputs.deploy_kb }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| KB (embed cht-companion-kb, enqueue cht-companion-kb-enqueue) | ${{ needs.changes.outputs.deploy_kb }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Infra (Terraform plan/apply) | ${{ needs.changes.outputs.deploy_infra }} |" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Configure AWS credentials (OIDC)
@@ -206,11 +206,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push kb image
+      - name: Build and push kb embed image
         if: needs.changes.outputs.deploy_kb == 'true' || needs.changes.outputs.deploy_infra == 'true'
         uses: docker/build-push-action@v7
         with:
           context: ./kb
+          file: ./kb/Dockerfile
           push: true
           platforms: linux/amd64
           provenance: false
@@ -218,8 +219,24 @@ jobs:
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:dev-latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=kb-embed
+          cache-to: type=gha,mode=max,scope=kb-embed
+
+      - name: Build and push kb enqueue image
+        if: needs.changes.outputs.deploy_kb == 'true' || needs.changes.outputs.deploy_infra == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: ./kb
+          file: ./kb/Dockerfile.enqueue
+          push: true
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}-enqueue
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:dev-latest-enqueue
+          cache-from: type=gha,scope=kb-enqueue
+          cache-to: type=gha,mode=max,scope=kb-enqueue
 
       - name: Setup Terraform
         if: needs.changes.outputs.deploy_infra == 'true'
@@ -276,12 +293,26 @@ jobs:
           aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" --task-definition "$NEW_ARN" --force-new-deployment --region "$AWS_REGION"
           aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE" --region "$AWS_REGION"
 
-      - name: Update Lambda
+      - name: Update embed Lambda
         if: needs.changes.outputs.deploy_kb == 'true' && github.event.inputs.plan_only != 'true'
         run: |
-          IMAGE="${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}"
           if ! aws lambda get-function --function-name cht-dev-companion-kb --region "$AWS_REGION" >/dev/null 2>&1; then
             echo "Lambda cht-dev-companion-kb not provisioned yet."
             exit 0
           fi
-          aws lambda update-function-code --function-name cht-dev-companion-kb --image-uri "$IMAGE" --region "$AWS_REGION"
+          aws lambda update-function-code \
+            --function-name cht-dev-companion-kb \
+            --image-uri "${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}" \
+            --region "$AWS_REGION"
+
+      - name: Update enqueue Lambda
+        if: needs.changes.outputs.deploy_kb == 'true' && github.event.inputs.plan_only != 'true'
+        run: |
+          if ! aws lambda get-function --function-name cht-dev-companion-kb-enqueue --region "$AWS_REGION" >/dev/null 2>&1; then
+            echo "Lambda cht-dev-companion-kb-enqueue not provisioned yet."
+            exit 0
+          fi
+          aws lambda update-function-code \
+            --function-name cht-dev-companion-kb-enqueue \
+            --image-uri "${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}-enqueue" \
+            --region "$AWS_REGION"

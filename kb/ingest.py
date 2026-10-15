@@ -1,9 +1,8 @@
 """Orchestrates one source through chunk -> embed -> upsert (CHAT-20 + CHAT-21).
 
-Source-agnostic: callers hand it plain text + a SourceInput, so the same
-path serves the bootstrap transcript set today and a live catalog/YouTube
-caption puller later (CHAT-19's EventBridge/SQS trigger calls this per
-source once that wiring exists — not built yet, tracked separately).
+Source-agnostic: callers hand it plain text + a SourceInput. The bootstrap
+loader passes local transcript files; the SQS worker passes text fetched
+from YouTube (transcripts.py) for each catalog clip.
 """
 
 from __future__ import annotations

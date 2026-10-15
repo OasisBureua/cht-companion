@@ -1,0 +1,1784 @@
+{
+  "metadata": {
+    "last_updated": "2026-02-24",
+    "source": "YouTube @CommunityHealthMedia",
+    "notes": "Maps local podcast files to YouTube video IDs. VERIFIED by comparing local Vimeo MP4 durations to YouTube durations AND transcript content.",
+    "verification_method": "Duration matching + transcript speaker verification"
+  },
+  "podcasts": {
+    "podcast1": {
+      "youtube_id": "eJ1wTcuL27U",
+      "youtube_title": "Dr. Jason Mouabbi & Dr. Paolo Tarantino - T-Dxd, HER2 Low & The Future of Breast Cancer Treatment",
+      "youtube_duration": 2014,
+      "local_duration": 2013,
+      "verified": true,
+      "doctors": [
+        "Dr. Jason Mouabbi",
+        "Dr. Paolo Tarantino"
+      ],
+      "topics": [
+        "T-DXd",
+        "HER2-Low",
+        "Destiny Breast trials"
+      ],
+      "transcript_file": "podcast1_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Jason Mouabbi",
+        "SPEAKER_01": "Dr. Paolo Tarantino"
+      },
+      "host": "Dr. Jason Mouabbi"
+    },
+    "podcast2": {
+      "youtube_id": "_IZ1eRPLgJY",
+      "youtube_title": "Dr. VK Gadi & Dr. Fengting Yan - Navigating HER2 Low and Ultra Low Disease",
+      "youtube_duration": 4068,
+      "local_duration": 4067,
+      "verified": true,
+      "doctors": [
+        "Dr. VK Gadi",
+        "Dr. Fengting Yan"
+      ],
+      "topics": [
+        "HER2-Low",
+        "HER2 Ultra-Low",
+        "Destiny Breast 06"
+      ],
+      "transcript_file": "podcast2_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_07": "Dr. VK Gadi",
+        "SPEAKER_02": "Dr. Fengting Yan"
+      },
+      "host": "Dr. VK Gadi",
+      "diarization_note": "Multiple diarization artifacts - primary speakers are SPEAKER_07 and SPEAKER_02"
+    },
+    "podcast3": {
+      "youtube_id": "sntHFszkcL8",
+      "youtube_title": "Dr. Jason Mouabbi & Dr. Mothaffar Rimawi - DB09 & The Future of HER2+Care",
+      "youtube_duration": 2265,
+      "local_duration": 2264,
+      "verified": true,
+      "doctors": [
+        "Dr. Jason Mouabbi",
+        "Dr. Mothaffar Rimawi"
+      ],
+      "topics": [
+        "Destiny Breast 09",
+        "HER2+",
+        "First-line therapy"
+      ],
+      "transcript_file": "podcast3_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_02": "Dr. Jason Mouabbi",
+        "SPEAKER_00": "Dr. Mothaffar Rimawi"
+      },
+      "host": "Dr. Jason Mouabbi"
+    },
+    "podcast4": {
+      "youtube_id": "E1tTwDQgMBc",
+      "youtube_title": "Dr. Aditya Bardia and Dr. Reena Callahan - Redefining HER2 Classifications and Treatments",
+      "youtube_duration": 1836,
+      "local_duration": 1835,
+      "verified": true,
+      "doctors": [
+        "Dr. Aditya Bardia",
+        "Dr. Reena Callahan"
+      ],
+      "topics": [
+        "HER2 classification",
+        "HER2-Low",
+        "ADCs"
+      ],
+      "transcript_file": "podcast4_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Reena Callahan",
+        "SPEAKER_01": "Dr. Aditya Bardia"
+      },
+      "host": "Dr. Reena Callahan"
+    },
+    "podcast5": {
+      "youtube_id": "I98PMjlDpag",
+      "youtube_title": "Dr. VK Gadi & Dr. Anne O'Dea - Advances in HER2 Positive Breast Cancer Treatment",
+      "youtube_duration": 1019,
+      "local_duration": 1018,
+      "verified": true,
+      "doctors": [
+        "Dr. VK Gadi",
+        "Dr. Anne O'Dea"
+      ],
+      "topics": [
+        "HER2+",
+        "Brain metastases",
+        "Treatment advances"
+      ],
+      "transcript_file": "podcast5_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Anne O'Dea",
+        "SPEAKER_01": "Dr. VK Gadi"
+      },
+      "host": "Dr. VK Gadi"
+    },
+    "podcast6": {
+      "youtube_id": "i90IEsCVfc8",
+      "youtube_title": "Dr. VK Gadi & Dr. Jason Mouabbi - HER2 Positive & HER2 Low Updates and Therapies",
+      "youtube_duration": 886,
+      "local_duration": 885,
+      "verified": true,
+      "doctors": [
+        "Dr. VK Gadi",
+        "Dr. Jason Mouabbi"
+      ],
+      "topics": [
+        "HER2 Positive",
+        "HER2-Low",
+        "Updates and Therapies"
+      ],
+      "transcript_file": "podcast6_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. VK Gadi",
+        "SPEAKER_01": "Dr. Jason Mouabbi"
+      },
+      "host": "Dr. VK Gadi"
+    },
+    "podcast7": {
+      "youtube_id": "iCoX7NUexEk",
+      "youtube_title": "Dr. Neil Iyengar & Dr. Mark Robson - PARP Inhibitors in Early Breast Cancer: Who and When to Treat",
+      "youtube_duration": 2456,
+      "local_duration": 2455,
+      "verified": true,
+      "doctors": [
+        "Dr. Neil Iyengar",
+        "Dr. Mark Robson"
+      ],
+      "topics": [
+        "PARP Inhibitors",
+        "Adjuvant",
+        "BRCA",
+        "Early Breast Cancer"
+      ],
+      "transcript_file": "podcast7_edit.txt",
+      "has_local_transcript": true,
+      "note": "Transcript mentions 'Robson' + 'PARP adjuvant setting'",
+      "speaker_mapping": {
+        "SPEAKER_02": "Dr. Neil Iyengar",
+        "SPEAKER_00": "Dr. Mark Robson"
+      },
+      "host": "Dr. Neil Iyengar"
+    },
+    "podcast8": {
+      "youtube_id": "OVS9BSyw4G0",
+      "youtube_title": "Dr. Mark Pegram and Dr. Neil Iyengar - T-DXd's Rise in HER2+ & HER2-Low Breast Cancer",
+      "youtube_duration": 1906,
+      "local_duration": 1905,
+      "verified": true,
+      "doctors": [
+        "Dr. Mark Pegram",
+        "Dr. Neil Iyengar"
+      ],
+      "topics": [
+        "T-DXd",
+        "HER2+",
+        "HER2-Low",
+        "ESMO 2025 Berlin"
+      ],
+      "transcript_file": "podcast8_edit.txt",
+      "has_local_transcript": true,
+      "note": "Transcript mentions 'Mark Pegram' + 'ESMO meeting 2025 in Berlin'",
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Mark Pegram",
+        "SPEAKER_01": "Dr. Neil Iyengar"
+      },
+      "host": "Dr. Mark Pegram"
+    },
+    "podcast9": {
+      "youtube_id": "E9tYE0v-EgE",
+      "youtube_title": "Dr. Jason Mouabbi, Dr. Irene Kang, and Dr. Ruemu Birhiray - Beyond pCR and Toward Brain Protection",
+      "youtube_duration": 1978,
+      "local_duration": 1977,
+      "verified": true,
+      "doctors": [
+        "Dr. Jason Mouabbi",
+        "Dr. Irene Kang",
+        "Dr. Ruemu Birhiray"
+      ],
+      "topics": [
+        "pCR",
+        "Brain protection",
+        "HER2+"
+      ],
+      "transcript_file": "podcast9_edit.txt",
+      "has_local_transcript": true,
+      "note": "Transcript says 'Jason Mouabbi' + 'two wonderful guests'",
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Jason Mouabbi",
+        "SPEAKER_02": "Dr. Irene Kang",
+        "SPEAKER_01": "Dr. Ruemu Birhiray"
+      },
+      "host": "Dr. Jason Mouabbi"
+    },
+    "podcast10": {
+      "youtube_id": "UBDIVW9nCQw",
+      "youtube_title": "Dr. Neil Iyengar & Dr. Erika Hamilton - FirstLine TNBC: How TRO-Breast02 & ASCENT-03 Change the Game",
+      "youtube_duration": 1401,
+      "local_duration": 1393,
+      "verified": true,
+      "doctors": [
+        "Dr. Neil Iyengar",
+        "Dr. Erika Hamilton"
+      ],
+      "topics": [
+        "Triple Negative",
+        "TNBC",
+        "ADCs",
+        "TROPION-Breast02",
+        "ASCENT-03"
+      ],
+      "transcript_file": "podcast10_edit.txt",
+      "has_local_transcript": true,
+      "note": "8 second difference acceptable - transcript says 'Neil Iyengar' + 'Winship'",
+      "speaker_mapping": {
+        "SPEAKER_01": "Dr. Neil Iyengar",
+        "SPEAKER_00": "Dr. Erika Hamilton"
+      },
+      "host": "Dr. Neil Iyengar"
+    },
+    "podcast11": {
+      "youtube_id": "4Kl0ZpYZXl8",
+      "youtube_title": "Dr. Mark Pegram & Dr. Ana Garrido-Castro - Breakthrough Data in Metastatic TNBC",
+      "youtube_duration": 1941,
+      "local_duration": 1940,
+      "verified": true,
+      "doctors": [
+        "Dr. Mark Pegram",
+        "Dr. Ana Garrido-Castro"
+      ],
+      "topics": [
+        "Metastatic TNBC",
+        "Triple Negative",
+        "ADCs"
+      ],
+      "transcript_file": "podcast11_edit.txt",
+      "has_local_transcript": true,
+      "note": "Transcript says 'Mark Pegram' + 'Ana Garrido-Castro'",
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Mark Pegram",
+        "SPEAKER_01": "Dr. Ana Garrido-Castro"
+      },
+      "host": "Dr. Mark Pegram"
+    },
+    "podcast12": {
+      "youtube_id": "Sp5DjLINi8A",
+      "youtube_title": "Dr. Gregory Vidal and Dr. Erika Hamilton - What DB-05 & DB-11 Mean for Patients",
+      "youtube_duration": 2089,
+      "local_duration": 2088,
+      "verified": true,
+      "doctors": [
+        "Dr. Gregory Vidal",
+        "Dr. Erika Hamilton"
+      ],
+      "topics": [
+        "Destiny Breast 05",
+        "Destiny Breast 11",
+        "Early stage"
+      ],
+      "transcript_file": "podcast12_edit.txt",
+      "has_local_transcript": true,
+      "note": "Transcript says 'Gregory Vidal' + 'West Cancer Center Memphis'",
+      "speaker_mapping": {
+        "SPEAKER_02": "Dr. Gregory Vidal",
+        "SPEAKER_00": "Dr. Erika Hamilton"
+      },
+      "host": "Dr. Gregory Vidal"
+    },
+    "podcast13": {
+      "youtube_id": "8i6PxlkmoQY",
+      "youtube_title": "Can T-DXd Change Early HER2+ Breast Cancer Forever? - Dr. Ruta Rao & Dr. VK Gadi",
+      "youtube_duration": 1999.0,
+      "local_duration": 2032,
+      "verified": false,
+      "doctors": [
+        "Dr. VK Gadi",
+        "Dr. Ruta Rao"
+      ],
+      "topics": [
+        "Breast cancer"
+      ],
+      "transcript_file": "podcast13_edit.txt",
+      "has_local_transcript": true,
+      "status": "auto_matched",
+      "note": "Transcript says 'VK Gadi' + 'Ruta Rao from Rush University' - NOT FOUND on YouTube channel"
+    },
+    "podcast14": {
+      "youtube_id": "KvZxWABCCyA",
+      "youtube_title": "Dr. Jason Mouabbi & Dr. Michelina Cairo - Talking DB04 and DB06",
+      "youtube_duration": 2637,
+      "local_duration": 2636,
+      "verified": true,
+      "doctors": [
+        "Dr. Jason Mouabbi",
+        "Dr. Michelina Cairo"
+      ],
+      "topics": [
+        "Destiny Breast 04",
+        "Destiny Breast 06"
+      ],
+      "transcript_file": null,
+      "has_local_transcript": false,
+      "status": "needs_transcript",
+      "note": "This is the FULL 44min version - podcast6 is the CUT 14.8min version"
+    },
+    "podcast15": {
+      "youtube_id": "vdnpqhH7Src",
+      "youtube_title": "Rethinking First-Line Metastatic HER2+ Therapy with T-DXd - Drs. Mouabbi, O\u2019Shaughnessy & Rimawi",
+      "youtube_duration": 2035.0,
+      "local_duration": 2034,
+      "verified": false,
+      "doctors": [
+        "Dr. Jason Mouabbi",
+        "Dr. Joyce O'Shaughnessy",
+        "Dr. Mothaffar Rimawi"
+      ],
+      "topics": [],
+      "transcript_file": "podcast15_edit.txt",
+      "has_local_transcript": true,
+      "status": "auto_matched",
+      "note": "Need to check transcript or video content to identify speakers"
+    },
+    "podcast16": {
+      "youtube_id": "Oih_DvEh4FI",
+      "youtube_title": "Datopotamab Deruxtecan vs Sacituzumab Govitecan Explained - Dr. Bill Gradishar & Dr. Tiffany Traina",
+      "youtube_duration": 1204,
+      "local_duration": 1350,
+      "verified": true,
+      "doctors": [
+        "Dr. Bill Gradishar",
+        "Dr. Tiffany Traina"
+      ],
+      "topics": [
+        "Datopotamab Deruxtecan",
+        "Sacituzumab Govitecan",
+        "ADCs",
+        "TNBC"
+      ],
+      "transcript_file": "podcast16_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Bill Gradishar",
+        "SPEAKER_01": "Dr. Tiffany Traina"
+      },
+      "host": "Dr. Bill Gradishar"
+    },
+    "podcast17": {
+      "youtube_id": "R_0Ual-cd2E",
+      "youtube_title": "Is T-DXd Rewriting First-Line HER2+ Metastatic Breast Cancer? - Dr. Mark Pegram & Dr. Fengting Yan",
+      "youtube_duration": 1363,
+      "local_duration": 1464,
+      "verified": true,
+      "doctors": [
+        "Dr. Mark Pegram",
+        "Dr. Fengting Yan"
+      ],
+      "topics": [
+        "T-DXd",
+        "First-line HER2+",
+        "Metastatic Breast Cancer"
+      ],
+      "transcript_file": "podcast17_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Mark Pegram",
+        "SPEAKER_01": "Dr. Fengting Yan"
+      },
+      "host": "Dr. Mark Pegram"
+    },
+    "podcast18": {
+      "youtube_id": "KRRIxUsQI7w",
+      "youtube_title": "DESTINY-Breast09 & the Future of Care - Dr. Irene Kang & Dr. Aditya Bardia",
+      "youtube_duration": 2036,
+      "local_duration": 1952,
+      "verified": true,
+      "doctors": [
+        "Dr. Irene Kang",
+        "Dr. Aditya Bardia"
+      ],
+      "topics": [
+        "DESTINY-Breast09",
+        "HER2+",
+        "Future of Care"
+      ],
+      "transcript_file": "podcast18_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Irene Kang",
+        "SPEAKER_01": "Dr. Aditya Bardia"
+      },
+      "host": "Dr. Irene Kang"
+    },
+    "podcast19": {
+      "youtube_id": "H_njEcRMEMg",
+      "youtube_title": "Is DB09 Leading Towards A New First-Line Standard Of Care? - Drs. Krie, Mardones, & O'Dea",
+      "youtube_duration": 2121,
+      "local_duration": 2587,
+      "verified": true,
+      "doctors": [
+        "Dr. Amy Krie",
+        "Dr. Mabel Mardones",
+        "Dr. Anne O'Dea"
+      ],
+      "topics": [
+        "DESTINY-Breast09",
+        "First-line Standard of Care",
+        "HER2+"
+      ],
+      "transcript_file": "podcast19_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Amy Krie",
+        "SPEAKER_01": "Dr. Mabel Mardones",
+        "SPEAKER_02": "Dr. Anne O'Dea"
+      },
+      "host": "Dr. Amy Krie"
+    },
+    "podcast20": {
+      "youtube_id": "PTPrAKSxar0",
+      "youtube_title": "Has HER2+ First-Line Treatment Officially Changed? - Dr. Neil Iyengar & Dr. Martin Dietrich",
+      "youtube_duration": 1366,
+      "local_duration": 1554,
+      "verified": true,
+      "doctors": [
+        "Dr. Neil Iyengar",
+        "Dr. Martin Dietrich"
+      ],
+      "topics": [
+        "HER2+ First-line",
+        "Treatment Change"
+      ],
+      "transcript_file": "podcast20_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Neil Iyengar",
+        "SPEAKER_01": "Dr. Martin Dietrich"
+      },
+      "host": "Dr. Neil Iyengar"
+    },
+    "podcast21": {
+      "youtube_id": "6IBpBFfMV5Q",
+      "youtube_title": "Is T-DXd + Pertuzumab the New FirstLine Standard? - Drs. Neil Iyengar, Komal Jhaveri, & Igor Makhlin",
+      "youtube_duration": 2122,
+      "local_duration": 2464,
+      "verified": true,
+      "doctors": [
+        "Dr. Neil Iyengar",
+        "Dr. Komal Jhaveri",
+        "Dr. Igor Makhlin"
+      ],
+      "topics": [
+        "T-DXd",
+        "Pertuzumab",
+        "First-line Standard"
+      ],
+      "transcript_file": "podcast21_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Neil Iyengar",
+        "SPEAKER_01": "Dr. Komal Jhaveri",
+        "SPEAKER_02": "Dr. Igor Makhlin"
+      },
+      "host": "Dr. Neil Iyengar"
+    },
+    "podcast22": {
+      "youtube_id": "kNu0bwP1M-s",
+      "youtube_title": "Is HER2+ Metastatic Breast Cancer Curable? What Comes Next - Dr. Gregory Vidal & Dr. Nusayba Bagegni",
+      "youtube_duration": 2477,
+      "local_duration": 2419,
+      "verified": true,
+      "doctors": [
+        "Dr. Gregory Vidal",
+        "Dr. Nusayba Bagegni"
+      ],
+      "topics": [
+        "HER2+ mBC",
+        "Cure",
+        "Future Treatments"
+      ],
+      "transcript_file": "podcast22_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Gregory Vidal",
+        "SPEAKER_01": "Dr. Nusayba Bagegni"
+      },
+      "host": "Dr. Gregory Vidal"
+    },
+    "podcast23": {
+      "youtube_id": "Zhq16QVNcFE",
+      "youtube_title": "New First-Line Strategies in HER2+ Metastatic Breast Cancer - Dr. Mark Pegram & Dr. Carol Tweed",
+      "youtube_duration": 1543,
+      "local_duration": 1670,
+      "verified": true,
+      "doctors": [
+        "Dr. Mark Pegram",
+        "Dr. Carol Tweed"
+      ],
+      "topics": [
+        "First-line HER2+",
+        "Treatment Strategies",
+        "Metastatic Breast Cancer"
+      ],
+      "transcript_file": "podcast23_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {
+        "SPEAKER_00": "Dr. Mark Pegram",
+        "SPEAKER_01": "Dr. Carol Tweed"
+      },
+      "host": "Dr. Mark Pegram"
+    },
+    "podcast24": {
+      "youtube_id": "iqQ6z4nzvyE",
+      "youtube_title": "Cleopatra, DESTINY-Breast09 & What Comes Next - Drs. Bill Gradishar, Tarah Ballinger, & Megan Kruse",
+      "youtube_duration": 1512,
+      "verified": true,
+      "doctors": [
+        "Dr. Bill Gradishar",
+        "Dr. Tarah Ballinger",
+        "Dr. Megan Kruse"
+      ],
+      "topics": [
+        "DB09",
+        "Cleopatra",
+        "HER2-positive metastatic breast cancer",
+        "ADC",
+        "first-line treatment"
+      ],
+      "transcript_file": "podcast24_edit.txt",
+      "has_local_transcript": true,
+      "speaker_mapping": {},
+      "host": "Dr. Bill Gradishar"
+    }
+  },
+  "unmapped_youtube_videos": [
+    {
+      "youtube_id": "V2zrRyH7Bfk",
+      "youtube_title": "DESTINY-Breast09 & the Future of Care - Dr. Irene Kang & Dr. Aditya Bardia",
+      "duration_seconds": 1866.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "m21BkWtj0C4",
+      "youtube_title": "Introducing The Breast Friends Podcast | Where Breast Cancer Science Meets Real Talk",
+      "duration_seconds": 49.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "UL9nHmxNJFY",
+      "youtube_title": "Induction to Maintenance: Is This the Future of ADCs in 1st line HER2+ mBC?",
+      "duration_seconds": 251.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Lrxyj8wEmQ0",
+      "youtube_title": "What Comes After DESTINY-Breast09?",
+      "duration_seconds": 245.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "kGxZxLlwqPM",
+      "youtube_title": "Monitoring ILD with T-DXd: What Clinicians Need to Know",
+      "duration_seconds": 211.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "qF8NcSSN8Jg",
+      "youtube_title": "Dose Optimization: The Secret to Long-Term T-DXd Success",
+      "duration_seconds": 230.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "xdMZPG7m7c4",
+      "youtube_title": "Managing Risk vs Benefit with T-DXd",
+      "duration_seconds": 186.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "tIy7ixYIlmw",
+      "youtube_title": "Who Should Receive T-DXd First Line?",
+      "duration_seconds": 209.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ECHViR4KdiY",
+      "youtube_title": "DESTINY-Breast09: Nearly 4 Years of PFS with T-DXd",
+      "duration_seconds": 203.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "aB842Ql-3rk",
+      "youtube_title": "Why First-Line Therapy Matters in HER2+ Metastatic Breast Cancer",
+      "duration_seconds": 200.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Q9-_hVnHPzM",
+      "youtube_title": "Why the Curative Setting Changes the Risk\u2013Benefit Equation",
+      "duration_seconds": 216.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Dmy6ZjDWbuM",
+      "youtube_title": "Managing ILD Risk & Radiation With Adjuvant T-DXd",
+      "duration_seconds": 251.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "X0R4jGVI9WQ",
+      "youtube_title": "DESTINY-Breast05 Explained: Can We Beat T-DM1?",
+      "duration_seconds": 188.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "SiB85Q9lrYg",
+      "youtube_title": "Adaptive Neoadjuvant Therapy: Are We Ready Yet?",
+      "duration_seconds": 224.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "IjfiCXE5n0A",
+      "youtube_title": "Residual Disease After Neoadjuvant Therapy: What Comes Next?",
+      "duration_seconds": 215.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "iEjhPKvCms8",
+      "youtube_title": "Is Anthracycline-Free Neoadjuvant Therapy Finally Here?",
+      "duration_seconds": 258.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "cGCV2bFRsH4",
+      "youtube_title": "83% pCR: DESTINY-Breast11 Breaks the Neoadjuvant Ceiling",
+      "duration_seconds": 225.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "eh2Njvh1ifE",
+      "youtube_title": "Should T-DXd Move Upfront in Early-Stage HER2+ Breast Cancer?",
+      "duration_seconds": 202.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "jq9ZXReIyb4",
+      "youtube_title": "Why HER2 Status Alone Is No Longer Enough",
+      "duration_seconds": 234.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ghWo9Lsx_UI",
+      "youtube_title": "What Happens After T-DXd? Sequencing Without a Playbook",
+      "duration_seconds": 241.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "R19jPuk6uqE",
+      "youtube_title": "What Comes After T-DXd in HER2+ Metastatic Breast Cancer?",
+      "duration_seconds": 250.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ymqgmJsWMvg",
+      "youtube_title": "Managing ILD With T-DXd: What Clinicians Need to Know",
+      "duration_seconds": 222.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "nFy-97sDOk4",
+      "youtube_title": "Choosing First-Line Therapy in HER2+ Metastatic Disease",
+      "duration_seconds": 251.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "_EjHGlPQFKE",
+      "youtube_title": "The Frontline Face-Off: DB-09, PATINA, and HER2CLIMB-05",
+      "duration_seconds": 197.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "1Napn_eDK0g",
+      "youtube_title": "DESTINY-Breast09 Explained: Why 40 Months PFS Matters",
+      "duration_seconds": 197.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "C5cfqCKYc9s",
+      "youtube_title": "Redefining the Horizon: Is Cure Possible in HER2+ mBC?",
+      "duration_seconds": 209.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "1btK2GCeQmA",
+      "youtube_title": "HER2+ Breast Cancer: The Most Transformed Disease in Oncology?",
+      "duration_seconds": 113.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "fHOYHFB5KvM",
+      "youtube_title": "Eliminating the Surprise: Mapping the Path for Adjuvant Therapy After Surgery",
+      "duration_seconds": 126.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "WxaHWx6jE6A",
+      "youtube_title": "Is pCR Enough? Why Regulators Still Want EFS Data",
+      "duration_seconds": 217.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "yVrm5Jww2_o",
+      "youtube_title": "\u201cBest Drug on Earth\u201d Isn\u2019t Enough If Patients Can\u2019t Tolerate It",
+      "duration_seconds": 210.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "pqkics_4Mks",
+      "youtube_title": "Does Higher pCR Come at a Cost? Weighing Efficacy vs Toxicity in DB-11",
+      "duration_seconds": 156.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "nUpeZyuuXHc",
+      "youtube_title": "Beyond KATHERINE: The DB-05 Shift in High-Risk HER2+ Disease",
+      "duration_seconds": 200.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "uHPuq57C-fw",
+      "youtube_title": "The New 1st Line Reality in HER2+ mBC: Why the Strongest Tool Goes First",
+      "duration_seconds": 250.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ZJi9LagprSo",
+      "youtube_title": "PATINA, HER2CLIMB-05 & the Maintenance Therapy Debate",
+      "duration_seconds": 240.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ProW2Y6qZE4",
+      "youtube_title": "Vigilance is Key: Managing ILD with T-DXd",
+      "duration_seconds": 199.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "XhK9dEiz_0s",
+      "youtube_title": "The 1st Line Decision: Why T-DXd is Redefining the Start",
+      "duration_seconds": 245.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "wgCxDkUpUWo",
+      "youtube_title": "Beyond CLEOPATRA: When the 1L Standard Falls Short",
+      "duration_seconds": 198.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Yq4jV9RP-XE",
+      "youtube_title": "Cleopatra\u2019s Survival Impact in HER2+ Metastatic Breast Cancer",
+      "duration_seconds": 194.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "8c9llZa5jtg",
+      "youtube_title": "Induction, Maintenance, or Both? Rethinking HER2+ mBC Treatment Strategy",
+      "duration_seconds": 273.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "OmzeFj9m4Qk",
+      "youtube_title": "The T-DXd Tradeoff: Balancing Breakthrough Efficacy with ILD Risk",
+      "duration_seconds": 237.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "hzNsmy5Fxt8",
+      "youtube_title": "Years on First-Line Therapy: A New Reality for Metastatic Breast Cancer",
+      "duration_seconds": 227.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "TCaYyL-Wcck",
+      "youtube_title": "40-Month PFS: Why Destiny-Breast09 Is a Game Changer",
+      "duration_seconds": 236.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "sqVFDZr1qSQ",
+      "youtube_title": "Is It Time to Move Beyond Cleopatra in HER2+ Metastatic Breast Cancer?",
+      "duration_seconds": 213.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "OtxmqBpE7tQ",
+      "youtube_title": "After Frontline T-DXd: How Should HER2+ Disease Be Sequenced Next?",
+      "duration_seconds": 218.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "AEG5ZP_KkS0",
+      "youtube_title": "Maintenance or Maximum Response? Rethinking Long-Term Control in HER2+ Disease",
+      "duration_seconds": 242.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "VsVAEJMQiAk",
+      "youtube_title": "Supportive Care with T-DXd: Antiemetics, Fatigue & Hair Preservation",
+      "duration_seconds": 216.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "tfoGd1TBWNA",
+      "youtube_title": "Which HER2+ Patients Should Receive T-DXd + Pertuzumab First-Line?",
+      "duration_seconds": 167.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "aZ8fg-kdzko",
+      "youtube_title": "Managing T-DXd Toxicity: ILD, Nausea, Fatigue & What to Watch For",
+      "duration_seconds": 242.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "F-_z3XTvn7A",
+      "youtube_title": "Frontline HER2+ Therapy: Why \u201cBest Drug First\u201d May Matter More Than Sequencing",
+      "duration_seconds": 247.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "6w6556MIsOE",
+      "youtube_title": "DESTINY-Breast09: 40-Month PFS \u2014 A New First-Line Reality for HER2+ Disease?",
+      "duration_seconds": 212.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "-9EoX0vZNdQ",
+      "youtube_title": "CLEOPATRA Explained: How It Became the First-Line Standard in HER2+ Breast Cancer",
+      "duration_seconds": 249.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Y_4aCJmux8E",
+      "youtube_title": "Dare We Say \u201cCure\u201d in HER2 + Metastatic Breast Cancer?",
+      "duration_seconds": 192.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "eg5xIVEouZ8",
+      "youtube_title": "Treating to Progression vs. Clinical Flexibility: Finding the Balance",
+      "duration_seconds": 193.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Yug4V9yZ7TI",
+      "youtube_title": "Is T-DXd Worth the Risk? Evaluating Benefit vs Toxicity",
+      "duration_seconds": 197.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "IQujTrZy6gQ",
+      "youtube_title": "Who Should Receive T-DXd + Pertuzumab in the First Line?",
+      "duration_seconds": 245.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "JXug7gtGgAY",
+      "youtube_title": "DESTINY-Breast09: 40 Months of PFS Changes Everything",
+      "duration_seconds": 248.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Bjnu0fjyoKU",
+      "youtube_title": "Why CLEOPATRA Became the Gold Standard in HER2+ Metastatic Breast Cancer",
+      "duration_seconds": 236.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ug1k4Zm7dUk",
+      "youtube_title": "Why Waiting for Second Line May Cost Patients Everything",
+      "duration_seconds": 256.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "AZxKUJuJRFM",
+      "youtube_title": "PATINA & HER2CLIMB-05: Rethinking Maintenance Therapy",
+      "duration_seconds": 151.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "JVjRoTTscZA",
+      "youtube_title": "Beyond the Induction Phase: Can We De-Escalate After DB09?",
+      "duration_seconds": 226.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ykXpesAL4ws",
+      "youtube_title": "ILD with T-DXd: Early detection. Proactive monitoring. The keys to T-DXd safety.",
+      "duration_seconds": 219.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "B2UnSHqbENM",
+      "youtube_title": "Managing T-DXd: Fatigue, Nausea, Hair Loss & Dose Reductions",
+      "duration_seconds": 190.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ULVBteqyBdI",
+      "youtube_title": "Why First-Line Choice Matters More Than Ever in HER2+ mBC",
+      "duration_seconds": 166.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Vd7xPwypusU",
+      "youtube_title": "DB09 Delivers 40-Month PFS: A First-Line Breakthrough",
+      "duration_seconds": 233.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Z-E8KGDCxSo",
+      "youtube_title": "From CLEOPATRA to DESTINY-Breast09: A Decade of Change in Metastatic HER2+ Disease",
+      "duration_seconds": 211.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "2E65pTrrIoI",
+      "youtube_title": "DESTINY-Breast11, DESTINY-Breast05 & What Comes Next - Dr. Neil Iyengar & Dr. Komal Jhaveri",
+      "duration_seconds": 1857.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "t6ZfcBgzBK8",
+      "youtube_title": "Rewriting Neoadjuvant & Adjuvant HER2+ Breast Cancer Strategy -Drs. Alison Conlin & Heather McArthur",
+      "duration_seconds": 2053.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "1lbpo_ncerI",
+      "youtube_title": "Induction, Maintenance & MRD: The Future of HER2+ Treatment",
+      "duration_seconds": 177.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "vMC7ZRgIszo",
+      "youtube_title": "ILD, Fatigue & Safety: Managing T-DXd in Clinical Practice",
+      "duration_seconds": 248.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "F1pkZ8n94Jw",
+      "youtube_title": "T-Dxd Redefining HER2+ Metastatic Care: From 85% Response Rates to Brain Metastasis Breakthroughs",
+      "duration_seconds": 252.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "HgzYi1FTXTE",
+      "youtube_title": "DESTINY-Breast09 Explained: Who Should Get T-DXd First-Line?",
+      "duration_seconds": 216.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "jfON_2bX3n4",
+      "youtube_title": "Is the CLEOPATRA Era Ending in HER2+ Metastatic Breast Cancer?",
+      "duration_seconds": 219.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "bvoSZO6ohaY",
+      "youtube_title": "ADC Sequencing in mTNBC: What Do You Do After Progression?",
+      "duration_seconds": 234.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "hoQ4xftagNw",
+      "youtube_title": "Which ADC to choose for 1st line mTNBC? Toxicity & Logistics Matter",
+      "duration_seconds": 236.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "yXFbxEc6uKM",
+      "youtube_title": "ASCENT-03 Explained: Crossover, Control Arms, and Real-World Impact",
+      "duration_seconds": 239.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "qxS55VIAFoE",
+      "youtube_title": "5-Month OS Gain in First-Line TNBC: Why TROPION-Breast02 Matters",
+      "duration_seconds": 236.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "9eRJzj3f4uo",
+      "youtube_title": "How Long Do You Stay on T-DXd in mBC? The Hardest Question",
+      "duration_seconds": 246.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "eY1b8n1acx8",
+      "youtube_title": "Managing ILD & Nausea on T-DXd: What Actually Works",
+      "duration_seconds": 228.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "QvzTpkKXYrE",
+      "youtube_title": "PIK3CA Mutations: The Hidden Resistance Pathway in HER2+ Disease",
+      "duration_seconds": 140.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "cSSOE_JktjE",
+      "youtube_title": "If T-DXd is Working, Do You Ever Stop?",
+      "duration_seconds": 111.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "sK90yhpJD5U",
+      "youtube_title": "40-Month PFS: Can T-DXd Move to the Frontline?",
+      "duration_seconds": 143.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "LVwgEgKGVZM",
+      "youtube_title": "Who Should NOT Get T-DXd Early?",
+      "duration_seconds": 177.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "LkS9JJs5k_A",
+      "youtube_title": "Does T-DXd + P Beat the CLEOPATRA Standard in First-Line Metastatic Disease?",
+      "duration_seconds": 312.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "MI1MYnhdUEQ",
+      "youtube_title": "Neoadjuvant T-DXd: Why DESTINY-Breast11 Data Turned Heads",
+      "duration_seconds": 265.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "lAKZX4l3qUg",
+      "youtube_title": "Is T-DXd Toxicity Worth the Tradeoff?",
+      "duration_seconds": 184.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "BHL9y5DCkFA",
+      "youtube_title": "Early-Stage HER2+: Defining \"High Risk\" in Residual Disease",
+      "duration_seconds": 226.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "CdPqcBNppcc",
+      "youtube_title": "Why T-DXd Could Replace T-DM1 in High-Risk Patients",
+      "duration_seconds": 175.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "4q4LjOiMwQE",
+      "youtube_title": "ESMO 2025 Roundtable: Redefining HER2, ADCs & the Future of Breast Cancer Care",
+      "duration_seconds": 4787.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "siZQ_Dr2s5Y",
+      "youtube_title": "mTNBC ADC vs. Chemo: Is There Still a Place for Chemo in the ADC Era?",
+      "duration_seconds": 173.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Ez2F5fYx1Tk",
+      "youtube_title": "Frontline mTNBC: How to Choose Between These Two ADCs",
+      "duration_seconds": 216.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "amcFr6Uy0eM",
+      "youtube_title": "Trodelvy\u2019s Dual Challenge: Managing Diarrhea and Neutropenia",
+      "duration_seconds": 136.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "CcnmTENjoyU",
+      "youtube_title": "Mastering Dato-DXd Toxicity: Prophylaxis for Stomatitis and Dry Eye",
+      "duration_seconds": 256.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "dW016JOZjvY",
+      "youtube_title": "Crossover Confusion: ASCENT-03 OS Data Complication",
+      "duration_seconds": 184.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "gVHu_pBeplg",
+      "youtube_title": "Why TRO-Breast02 Included Higher-Risk \u2018Bad Actors\u2019",
+      "duration_seconds": 156.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "PNkEI1dVq5I",
+      "youtube_title": "DB-11 or DB-05 First? The DESTINY-Breast Sequencing Debate",
+      "duration_seconds": 201.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "qoAF9JChDUc",
+      "youtube_title": "ADC After ADC: Is It Worth It?",
+      "duration_seconds": 300.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "_0PVqe8sOBk",
+      "youtube_title": "Why Moving T-DXd to the Curative Setting Matters",
+      "duration_seconds": 147.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ZlY_IrFBJ-o",
+      "youtube_title": "DB-05 and T-DM1 Limitations: Why T-DXd Demands the Redefinition of HER2 Assays",
+      "duration_seconds": 239.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "zpX07Zues_g",
+      "youtube_title": "First-Line T-DXd vs. Cape? The Decision for Endocrine-Resistant HR+ Disease Based on DB-06 Data",
+      "duration_seconds": 201.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "kQ8yVq-Djjs",
+      "youtube_title": "T-DXd in Early-Stage HER2+: What Should Be Your ILD Monitoring Threshold?",
+      "duration_seconds": 308.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "tOzehs6gBFg",
+      "youtube_title": "Managing T-DXd-Associated ILD: Strategies for Vigilance and Low Threshold Intervention",
+      "duration_seconds": 191.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "bd54tNGvWxA",
+      "youtube_title": "Will OS Influence Guidelines for First-Line mTNBC?",
+      "duration_seconds": 223.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ch5COgMh-aM",
+      "youtube_title": "Biomarkers and Resistance: Interpreting Trop-2 ADC Performance in Diverse mTNBC Patient Subsets",
+      "duration_seconds": 191.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "0dm13dViWOc",
+      "youtube_title": "How Clinicians Choose Between TROP2 ADCs",
+      "duration_seconds": 101.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "TShTHbyO7W0",
+      "youtube_title": "Trop\u22122 ADC Safety Profile: A Head-to-Head Comparison of Key AEs and Management",
+      "duration_seconds": 212.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ielLy0kYXUg",
+      "youtube_title": "Endpoints and Heterogeneity: A Critical Look at PFS and OS in TROPION\u2212Breast02 and ASCENT\u221203",
+      "duration_seconds": 216.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "U-l8sKLf_LM",
+      "youtube_title": "Response Rate & Risk Profile: Interpreting Early Efficacy in High-Risk mTNBC Patients",
+      "duration_seconds": 227.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "SananCrJZ_s",
+      "youtube_title": "Neratinib's Future: What is its Role in the Evolving Early HER2+ Landscape?",
+      "duration_seconds": 262.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "mVjwdOPRk1Q",
+      "youtube_title": "DESTINY-Breast05 & COMPASS-HER2 RD: What\u2019s Next in Adjuvant Therapy",
+      "duration_seconds": 219.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "KLF283jdbUw",
+      "youtube_title": "Strategizing Communication Timing with Patients to Maximize Neratinib Adherence",
+      "duration_seconds": 199.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "9JaQb4A6HLE",
+      "youtube_title": "Managing Neratinib Diarrhea: Strategies That Work",
+      "duration_seconds": 343.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "lLQwQP98Its",
+      "youtube_title": "Neratinib: Unique Reduction of CNS Recurrence Risk in the Extended Adjuvant Setting",
+      "duration_seconds": 206.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Uxx2dPXkdpo",
+      "youtube_title": "The 12-Month Rule: Why Completing Neratinib Matters",
+      "duration_seconds": 109.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "89zFKPjPOg8",
+      "youtube_title": "Does pCR Protect Against Brain Recurrence?",
+      "duration_seconds": 122.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "bNlZgRgvdEk",
+      "youtube_title": "Should We Screen for Brain Metastases in HER2+ Disease?",
+      "duration_seconds": 93.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "E-5SY7efBgs",
+      "youtube_title": "Why HER2+ Disease Has a Predisposition for Brain Metastases",
+      "duration_seconds": 162.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "B5vz-QOUUfo",
+      "youtube_title": "pCR Isn\u2019t the Whole Story: How Oncologists Communicate Risk",
+      "duration_seconds": 106.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "PpljPBBotkY",
+      "youtube_title": "The Future of Adjuvant PARP Therapy: MRD, ADCs, and Beyond",
+      "duration_seconds": 237.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "3Ww_SBB4lKE",
+      "youtube_title": "Managing PARP Inhibitor Toxicity: Practical Tips for Clinicians",
+      "duration_seconds": 156.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "qq0opu1iEmA",
+      "youtube_title": "Long-Term Safety of PARP Inhibitors: Myeloid Risk and Preventive Considerations",
+      "duration_seconds": 286.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "CJyjZKTKn-w",
+      "youtube_title": "PARP vs. CDK4/6 Inhibitors: Which Comes First in HR+ BRCA+ Disease?",
+      "duration_seconds": 184.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "wJZyFTOHE5s",
+      "youtube_title": "Hormone Receptor Status & BRCA: Does Subtype Matter for PARP Use?",
+      "duration_seconds": 185.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "wAIwQ2n4CIk",
+      "youtube_title": "Beyond BRCA: Emerging Germline Targets for PARP Inhibitors",
+      "duration_seconds": 87.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "mOjIS7vNS_g",
+      "youtube_title": "Adjuvant PARP Inhibition: Risk Stratification and Sequencing in High-Risk Patients",
+      "duration_seconds": 307.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "kbXx_9fF8LU",
+      "youtube_title": "Germline Testing in the Community: Practical Pathways Without Genetics Teams",
+      "duration_seconds": 163.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "GyC9Z3iNX_k",
+      "youtube_title": "Expanding Germline Testing: Who Should Be Tested for PARP Eligibility?",
+      "duration_seconds": 249.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "QSMgE7llkd4",
+      "youtube_title": "T-Dxd Role in HER2-Low: Establishing the First Cytotoxic Line After Endocrine Therapy Failure",
+      "duration_seconds": 117.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "OP_Pnw7Y_MI",
+      "youtube_title": "Analyzing the role of T-Dxd in DB06 HER2-low and HER2-ultralow advanced breast cancer",
+      "duration_seconds": 125.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "iVmcOEriCZg",
+      "youtube_title": "Bridging PATINA and DB09: The Evolving Induction Followed by Maintenance Strategy",
+      "duration_seconds": 346.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "x_sIzmeTcw8",
+      "youtube_title": "DB09: T-DXd + Pertuzumab Challenges the Cleopatra Regimen in First-Line Metastatic Disease",
+      "duration_seconds": 143.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "_Gz310oYHNI",
+      "youtube_title": "How To Approach residual Disease After Neoadjuvant T-DXd",
+      "duration_seconds": 131.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "FXxU1OfAcwI",
+      "youtube_title": "Managing T-DXd Toxicity: ILD Monitoring and the Curative Risk-Benefit Analysis in DB05",
+      "duration_seconds": 160.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "NHUZFxLpa4g",
+      "youtube_title": "Adjuvant ADC Head-to-Head: DB05 Data Define a New Standard in Early HER2-Positive Breast Cancer",
+      "duration_seconds": 98.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "bKKuNknx-2Y",
+      "youtube_title": "Deciphering the T-DXd Dilemma: Dual Success in DESTINY-Breast11 and DESTINY-Breast05",
+      "duration_seconds": 51.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "FMUFEFjkj_Q",
+      "youtube_title": "Safety Profile of Neoadjuvant T-DXd in DB11: Balancing ILD Risk Against Anthracycline Cardiotoxicity",
+      "duration_seconds": 82.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "NqW9R9T_E7g",
+      "youtube_title": "CHM: Storytelling that Moves Healthcare Forward",
+      "duration_seconds": 90.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "d3UwGTh3ipo",
+      "youtube_title": "T-DXd in the DB11 NACT Space: Is De-escalation in adjuvant setting Possible by Maximizing pCR?",
+      "duration_seconds": 103.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "63sj4AsUdpw",
+      "youtube_title": "The Predictive Power of 11%: Is T-DXd's pCR Gain Enough for Long-Term Benefit?",
+      "duration_seconds": 76.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "2K4zKdXE50Y",
+      "youtube_title": "DB11 and the Role of (T-DXd) in NACT high risk early stage HER2-Positive Breast Cancer",
+      "duration_seconds": 184.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "fkz0qHf_IfU",
+      "youtube_title": "T-DXd and the CNS",
+      "duration_seconds": 84.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "37QCI8tNyXo",
+      "youtube_title": "PI3K? T-DXd Don\u2019t Care",
+      "duration_seconds": 108.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "g6eEMnpnvbA",
+      "youtube_title": "Can We Say \"Cure\"?",
+      "duration_seconds": 118.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "WUw5GkSDAPg",
+      "youtube_title": "PATINA\u2019s 44\u2011Month Shockwave",
+      "duration_seconds": 95.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "YRJRNTFt9k4",
+      "youtube_title": "T-DXd and Cycling",
+      "duration_seconds": 85.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "hq7RjtHvFNA",
+      "youtube_title": "ILD Reality Check",
+      "duration_seconds": 85.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "KcQXuAc7K8s",
+      "youtube_title": "Treatment, but for how long?",
+      "duration_seconds": 161.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "VPk0YU4oMgw",
+      "youtube_title": "41-Month PFS: New Gold Standard",
+      "duration_seconds": 90.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "me13mq5MyXU",
+      "youtube_title": "DESTINY-Breast09 and the Three Arms in Two Minutes",
+      "duration_seconds": 108.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Q7eWqSkbZSM",
+      "youtube_title": "The Payload Train",
+      "duration_seconds": 47.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "3tRLBbhZKaQ",
+      "youtube_title": "Southern vs Northern Sequencing",
+      "duration_seconds": 102.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "BDEn3l1MGZ4",
+      "youtube_title": "First-Strike",
+      "duration_seconds": 65.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "yUUs38ZLXO4",
+      "youtube_title": "Capecitabine Comfort vs ADC Leap",
+      "duration_seconds": 74.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "8A8pGMN3YAs",
+      "youtube_title": "Any HER2 Ever?",
+      "duration_seconds": 76.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "tw7odu3uxbI",
+      "youtube_title": "Ultra-Low in Real Life",
+      "duration_seconds": 131.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "7OzgxUUbcNU",
+      "youtube_title": "DB-04 to DB-06, the Steps of Ultra-Low",
+      "duration_seconds": 139.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "fyHkq5sl7_k",
+      "youtube_title": "Concurrent Endocrine: Old-School?",
+      "duration_seconds": 127.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "e6bQPC_k0q4",
+      "youtube_title": "When to stop T-DXd? T-DXd Holidays",
+      "duration_seconds": 252.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "AGy_ca6gYZ4",
+      "youtube_title": "HER2DX Score: De-Escalate Like You Mean It",
+      "duration_seconds": 146.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "qUikxvjyKYY",
+      "youtube_title": "Does 1\u202f+\u202fBeat\u202f2\u202f+? And ADC-After-ADC",
+      "duration_seconds": 192.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "BBGdojA9FUk",
+      "youtube_title": "HER2 Mutations: TKIs Take the Wheel",
+      "duration_seconds": 221.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "njWMkhA56kQ",
+      "youtube_title": "The 11th Tap: Betting against HER2 Data",
+      "duration_seconds": 234.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "GjNopl9uqvA",
+      "youtube_title": "Does Cutting the Dose Help?",
+      "duration_seconds": 228.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "avtplEwgd64",
+      "youtube_title": "Is HER2-Zero Real?",
+      "duration_seconds": 202.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "xNzDeKHYlqU",
+      "youtube_title": "Repeat Biopsy: Mining for Patients",
+      "duration_seconds": 140.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ZKYklHdjX1A",
+      "youtube_title": "Brain Mets: T-DXd Beats BBB",
+      "duration_seconds": 57.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "yEY8X07NgIM",
+      "youtube_title": "Real-World Evidence v2.0",
+      "duration_seconds": 56.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "9XgM1yRprmc",
+      "youtube_title": "Skipping the Endocrine Queue",
+      "duration_seconds": 109.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "hM4poFDCJE8",
+      "youtube_title": "Biomarkers Galore: ESR1,\u202fPIK3CA,\u202fBRCA",
+      "duration_seconds": 97.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "sw-88hei2RU",
+      "youtube_title": "Fatigue: Dose Reduction vs. Exercise?",
+      "duration_seconds": 101.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "w-HSWGNMF_g",
+      "youtube_title": "T-DXd Tolerability: Evidence vs. RWE",
+      "duration_seconds": 99.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "8T6jCenBKWk",
+      "youtube_title": "First-Line Ambitions: DESTINY-Breast09",
+      "duration_seconds": 96.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Lot00xWRsd0",
+      "youtube_title": "T-DXd\u2026 Where to start?",
+      "duration_seconds": 90.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "cWN63wcoXj4",
+      "youtube_title": "HER2-LOW: Biomarker, not Driver",
+      "duration_seconds": 83.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "MQFSNitx6QA",
+      "youtube_title": "Effective Communication in Oncology: The Art of Shared Decision Making",
+      "duration_seconds": 99.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "Hgk8UqAOyJE",
+      "youtube_title": "First-Line TDXd?",
+      "duration_seconds": 45.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ZztOKiKYtsQ",
+      "youtube_title": "TDXd for Brain Metastases: The Baseball Slugger",
+      "duration_seconds": 122.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "4K6M7RBntqI",
+      "youtube_title": "DESTINY-Breast Trials: Expanding Treatment Horizons",
+      "duration_seconds": 153.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "-nVg24Eoiwg",
+      "youtube_title": "HER2 Expression: Beyond the Binary",
+      "duration_seconds": 112.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "7-nOdLvFZYc",
+      "youtube_title": "Redefining HER2: From Oncogene Discoveryto Clinical Breakthrough",
+      "duration_seconds": 129.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "dfB28p7Y97w",
+      "youtube_title": "T-DXd in Early-Stage HER2+ Breast Cancer?",
+      "duration_seconds": 283.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "r_6PUj8b56Q",
+      "youtube_title": "T-DXd: Continuous vs. Cycled?",
+      "duration_seconds": 342.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "ZCoySC3mCzw",
+      "youtube_title": "T-DXd & Brain Mets: Radiation Timing Matters",
+      "duration_seconds": 94.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "4CN7IzGhnGA",
+      "youtube_title": "T-DXd: Breakthrough for Brain Metastases",
+      "duration_seconds": 273.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "PcswEdVkaVA",
+      "youtube_title": "T-DXd: Use Your Best Player First",
+      "duration_seconds": 162.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "mQ9JU2bZeAw",
+      "youtube_title": "HER2 Ultra-Low: A New Target in Breast Cancer?",
+      "duration_seconds": 324.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "t0kWLtTbcxw",
+      "youtube_title": "Destiny-Breast04: Expanding T-DXd to HER2-Low",
+      "duration_seconds": 182.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "TaCYbIL5_4k",
+      "youtube_title": "T-DXd: Game-Changer in HER2+ Cancer",
+      "duration_seconds": 178.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "z_3Sj3hoFP0",
+      "youtube_title": "Alternative Long-Term Monitoring in Stable Cancer Patients",
+      "duration_seconds": 108.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "8kiRqItf4s8",
+      "youtube_title": "New Treatments for HER2-Positive Breast Cancer with CNS Involvement: Benefits and Risks",
+      "duration_seconds": 164.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "xZJZ6OBEGv0",
+      "youtube_title": "HER2-low: Moving Beyond the Binary?",
+      "duration_seconds": 199.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "lTDEUwLswEg",
+      "youtube_title": "DESTINY-Breast04 Study: T-DXd Breakthrough for HER2-Low Breast Cancer Treatment",
+      "duration_seconds": 208.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "7U25Sc4Ga-c",
+      "youtube_title": "DESTINY-Breast06 Study Exploring TDXD for HER2-Low and Ultra-Low Breast Cancer",
+      "duration_seconds": 205.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "z31a9TgQuqE",
+      "youtube_title": "Antibody-Drug Conjugates: A Bright Future?",
+      "duration_seconds": 251.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "1Vea3Ot7WXs",
+      "youtube_title": "Rethinking HER2-Positive Breast Cancer Treatment Regimens with T-DXd",
+      "duration_seconds": 343.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "wcGyBmvwdQ0",
+      "youtube_title": "The Mom Rule: Prioritizing Patient-Centered Cancer Care",
+      "duration_seconds": 125.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "SbVDrhhuQaU",
+      "youtube_title": "Evolving HER2-Positive Breast Cancer Care: Targeted Therapies Poised to Replace Chemotherapy",
+      "duration_seconds": 233.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "C2_dhtmt6KI",
+      "youtube_title": "Addressing CNS Metastases in HER2-Positive Breast Cancer",
+      "duration_seconds": 324.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "iWYGWV3WCao",
+      "youtube_title": "Redefining HER2 in Breast Cancer: Insights on HER2-Low and Ultra-Low Treatment Advances",
+      "duration_seconds": 464.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "GKacRgiPe0g",
+      "youtube_title": "New Insights into HER2-Low and Trop-2 Targeting in Breast Cancer",
+      "duration_seconds": 233.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "S3g1f5dLv-k",
+      "youtube_title": "The Importance of Updated HER2 Testing in Breast Cancer Treatment Eligibility",
+      "duration_seconds": 243.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "m2uHPfU7Hug",
+      "youtube_title": "Understanding Linkers and Payloads in Breast Cancer Treatment",
+      "duration_seconds": 267.0,
+      "status": "no_local_file"
+    },
+    {
+      "youtube_id": "iM9EIoaQM6I",
+      "youtube_title": "Advances in HER2-Positive Breast Cancer Treatment: Exploring ADCs",
+      "duration_seconds": 307.0,
+      "status": "no_local_file"
+    }
+  ],
+  "summary": {
+    "total_local_podcasts": 24,
+    "verified_youtube_matches": 22,
+    "auto_matched": 2,
+    "not_on_youtube": 0,
+    "unmapped_youtube_videos": 202
+  }
+}

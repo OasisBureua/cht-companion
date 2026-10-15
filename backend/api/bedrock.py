@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import time
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from functools import lru_cache
 
 import boto3
@@ -25,6 +26,10 @@ GENERATION_MODEL = os.environ.get(
         "us.anthropic.claude-sonnet-5",
     ),
 )
+# Follow-up rewrite is a short call; point it at a smaller model to cut latency.
+REWRITE_MODEL = os.environ.get("BEDROCK_REWRITE_MODEL_ID", "").strip() or GENERATION_MODEL
+# Empty disables reranking; retrieval then keeps its fused order.
+RERANK_MODEL = os.environ.get("BEDROCK_RERANK_MODEL_ID", "cohere.rerank-v3-5:0").strip()
 
 
 class EmbeddingError(Exception):
@@ -33,6 +38,14 @@ class EmbeddingError(Exception):
 
 class GenerationError(Exception):
     """Raised when Bedrock generation fails — caller maps this to llm_timeout/llm_refused/internal."""
+
+
+class RerankError(Exception):
+    """Reranking failed or is disabled. Callers fall back to retrieval order."""
+
+
+class RewriteError(Exception):
+    """Follow-up rewrite failed. Callers search with the raw question."""
 
 
 # A full report (up to 8192 output tokens) takes minutes; botocore's default
@@ -49,6 +62,11 @@ _BEDROCK_CONFIG = Config(
 @lru_cache(maxsize=1)
 def _client():
     return boto3.client("bedrock-runtime", region_name=AWS_REGION, config=_BEDROCK_CONFIG)
+
+
+@lru_cache(maxsize=1)
+def _agent_client():
+    return boto3.client("bedrock-agent-runtime", region_name=AWS_REGION, config=_BEDROCK_CONFIG)
 
 
 def _log_bedrock(event: str, **fields: object) -> None:
@@ -105,20 +123,172 @@ def embed_query(text: str) -> list[float]:
     return embedding
 
 
+def rerank(
+    query: str,
+    documents: Sequence[str],
+    *,
+    top_n: int,
+    request_id: str | None = None,
+) -> list[tuple[int, float]]:
+    """Score documents against the query with the Bedrock Rerank API.
+
+    Returns (document index, relevance score in 0..1), best first.
+    Raises RerankError when disabled or on any Bedrock failure.
+    """
+    if not RERANK_MODEL:
+        raise RerankError("reranking disabled")
+    if not documents:
+        return []
+
+    t0 = time.monotonic()
+    try:
+        response = _agent_client().rerank(
+            queries=[{"type": "TEXT", "textQuery": {"text": query}}],
+            sources=[
+                {"type": "INLINE", "inlineDocumentSource": {"type": "TEXT", "textDocument": {"text": doc}}}
+                for doc in documents
+            ],
+            rerankingConfiguration={
+                "type": "BEDROCK_RERANKING_MODEL",
+                "bedrockRerankingConfiguration": {
+                    "numberOfResults": min(top_n, len(documents)),
+                    "modelConfiguration": {
+                        "modelArn": f"arn:aws:bedrock:{AWS_REGION}::foundation-model/{RERANK_MODEL}",
+                    },
+                },
+            },
+        )
+        results = [(int(r["index"]), float(r["relevanceScore"])) for r in response.get("results", [])]
+    except Exception as exc:  # noqa: BLE001 — any boto3/network/shape failure collapses here
+        _log_bedrock(
+            "bedrock_rerank_error",
+            model_id=RERANK_MODEL,
+            request_id=request_id,
+            latency_ms=int((time.monotonic() - t0) * 1000),
+            error=str(exc),
+        )
+        raise RerankError(str(exc)) from exc
+
+    _log_bedrock(
+        "bedrock_rerank_ok",
+        model_id=RERANK_MODEL,
+        request_id=request_id,
+        documents=len(documents),
+        results=len(results),
+        top_score=results[0][1] if results else None,
+        latency_ms=int((time.monotonic() - t0) * 1000),
+    )
+    return sorted(results, key=lambda r: r[1], reverse=True)
+
+
+REWRITE_PROMPT = (
+    "You turn the latest message in a conversation into one standalone search query "
+    "for a medical knowledge base. Resolve pronouns and references using the earlier "
+    "turns, keep drug, trial and doctor names exactly as written, and return only the "
+    "query text with no quotes or explanation."
+)
+_REWRITE_TURNS = 6
+_REWRITE_TURN_CHARS = 1500
+
+
+def rewrite_query(query: str, history: Sequence[dict], *, request_id: str | None = None) -> str:
+    """Rewrite a follow-up like "what about brain mets?" into a standalone query.
+
+    Raises RewriteError on any failure or an empty rewrite.
+    """
+    transcript = "\n".join(
+        f"{turn['role']}: {_strip_citation_markers(turn['content'])[:_REWRITE_TURN_CHARS]}"
+        for turn in list(history)[-_REWRITE_TURNS:]
+    )
+    user_content = f"Conversation:\n{transcript}\n\nLatest message: {query.strip()}"
+
+    t0 = time.monotonic()
+    try:
+        response = _client().converse(
+            modelId=REWRITE_MODEL,
+            system=[{"text": REWRITE_PROMPT}],
+            messages=[{"role": "user", "content": [{"text": user_content}]}],
+            inferenceConfig={"maxTokens": 200},
+        )
+        blocks = response.get("output", {}).get("message", {}).get("content", [])
+        rewritten = "".join(block.get("text", "") for block in blocks).strip().strip('"')
+    except Exception as exc:  # noqa: BLE001 — any boto3/network failure collapses here
+        _log_bedrock(
+            "bedrock_rewrite_error",
+            model_id=REWRITE_MODEL,
+            request_id=request_id,
+            latency_ms=int((time.monotonic() - t0) * 1000),
+            error=str(exc),
+        )
+        raise RewriteError(str(exc)) from exc
+
+    if not rewritten:
+        raise RewriteError("empty rewrite")
+
+    _log_bedrock(
+        "bedrock_rewrite_ok",
+        model_id=REWRITE_MODEL,
+        request_id=request_id,
+        history_turns=len(history),
+        latency_ms=int((time.monotonic() - t0) * 1000),
+    )
+    return rewritten[:4000]
+
+
 SYSTEM_PROMPT = (
-    "You are CHT Companion, a medical Q&A assistant for Community Health Technologies. "
-    "Answer the user's question using ONLY the provided context chunks. Each chunk is "
-    "labeled with a citation id like [c1], [c2]. Cite the chunks you used inline with "
-    "their id, e.g. \"...as shown in [c1].\" If the context does not contain enough "
-    "information to answer, say so plainly rather than guessing."
+    "You are CHT Companion, the assistant for Community Health Media (CHM) and the CHT "
+    "Platform. You answer questions about CHM, the platform, and the medical content in "
+    "its knowledge base. Answer using ONLY the provided context. Each source in the "
+    "context is labeled with a citation id like [c1], [c2]. Cite the sources you used "
+    "inline with their id, e.g. \"...as shown in [c1].\" Cite only the sources that "
+    "directly support a statement, at most three per statement, and never list sources "
+    "just because they repeat the same text. Earlier messages are the "
+    "conversation so far: use them to understand follow-up questions, but take facts "
+    "only from the context. If no context is provided, or it does not answer the "
+    "question, say plainly that the CHT knowledge base does not cover it rather than "
+    "guessing."
 )
 
+_CITATION_MARKER = re.compile(r"\s?\[[cC]\d+\]")
 
-def _build_generation_messages(query: str, context_block: str) -> list[dict]:
-    user_content = query.strip()
+
+def _strip_citation_markers(text: str) -> str:
+    """Old answers cite ids from an earlier retrieval; drop them so they don't
+    get confused with the ids in the current context."""
+    return _CITATION_MARKER.sub("", text)
+
+
+def _build_generation_messages(
+    query: str,
+    context_block: str,
+    history: Sequence[dict] | None = None,
+) -> list[dict]:
+    """Earlier turns, then the question with its context. Bedrock converse needs
+    alternating roles starting with user, so empty turns are dropped, a leading
+    assistant turn is dropped, and same-role neighbors are merged."""
     if context_block:
-        user_content = f"Context:\n{context_block}\n\nQuestion: {query.strip()}"
-    return [{"role": "user", "content": user_content}]
+        final = f"Context:\n{context_block}\n\nQuestion: {query.strip()}"
+    else:
+        final = f"No knowledge-base context matched this question.\n\nQuestion: {query.strip()}"
+
+    turns: list[dict] = []
+    for turn in history or []:
+        content = turn["content"].strip()
+        if turn["role"] == "assistant":
+            content = _strip_citation_markers(content).strip()
+        if content:
+            turns.append({"role": turn["role"], "content": content})
+    turns.append({"role": "user", "content": final})
+
+    merged: list[dict] = []
+    for turn in turns:
+        if not merged and turn["role"] != "user":
+            continue
+        if merged and merged[-1]["role"] == turn["role"]:
+            merged[-1]["content"] = f"{merged[-1]['content']}\n\n{turn['content']}"
+        else:
+            merged.append(dict(turn))
+    return merged
 
 
 # Bedrock's messageStop.stopReason values, mapped onto our API contract's
@@ -209,6 +379,7 @@ def stream_generation(
     query: str,
     context_block: str,
     *,
+    history: Sequence[dict] | None = None,
     max_tokens: int = 1024,
     temperature: float | None = None,
     request_id: str | None = None,
@@ -239,7 +410,7 @@ def stream_generation(
             system=[{"text": SYSTEM_PROMPT}],
             messages=[
                 {"role": m["role"], "content": [{"text": m["content"]}]}
-                for m in _build_generation_messages(query, context_block)
+                for m in _build_generation_messages(query, context_block, history)
             ],
             inferenceConfig=inference_config,
         )

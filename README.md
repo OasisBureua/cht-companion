@@ -1,6 +1,6 @@
 # CHT Companion
 
-Members-only RAG chat API and knowledge-base ingest for Community Health TV (Bedrock, pgvector, Service Connect).
+AI gateway for Community Health TV: RAG chat, report generation and knowledge-base ingest on Bedrock, for internal services over Service Connect (Cognito M2M scopes, pgvector).
 
 Chat UI and NestJS BFF (`POST /api/chat` SSE proxy) live in **cht-platform-tool**, not this repo.
 

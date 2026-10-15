@@ -157,11 +157,12 @@ jobs:
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_BACKEND_REPO }}:prod-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Build and push kb image
+      - name: Build and push kb embed image
         if: needs.changes.outputs.deploy_kb == 'true'
         uses: docker/build-push-action@v7
         with:
           context: ./kb
+          file: ./kb/Dockerfile
           push: true
           platforms: linux/amd64
           provenance: false
@@ -169,5 +170,42 @@ jobs:
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:prod-latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=kb-embed
+          cache-to: type=gha,mode=max,scope=kb-embed
+      - name: Build and push kb enqueue image
+        if: needs.changes.outputs.deploy_kb == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: ./kb
+          file: ./kb/Dockerfile.enqueue
+          push: true
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}-enqueue
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:prod-latest-enqueue
+          cache-from: type=gha,scope=kb-enqueue
+          cache-to: type=gha,mode=max,scope=kb-enqueue
+      - name: Update embed Lambda
+        if: needs.changes.outputs.deploy_kb == 'true' && github.event.inputs.plan_only != 'true'
+        run: |
+          if ! aws lambda get-function --function-name cht-companion-kb --region "$AWS_REGION" >/dev/null 2>&1; then
+            echo "Lambda cht-companion-kb not provisioned yet."
+            exit 0
+          fi
+          aws lambda update-function-code \
+            --function-name cht-companion-kb \
+            --image-uri "${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}" \
+            --region "$AWS_REGION"
+      - name: Update enqueue Lambda
+        if: needs.changes.outputs.deploy_kb == 'true' && github.event.inputs.plan_only != 'true'
+        run: |
+          if ! aws lambda get-function --function-name cht-companion-kb-enqueue --region "$AWS_REGION" >/dev/null 2>&1; then
+            echo "Lambda cht-companion-kb-enqueue not provisioned yet."
+            exit 0
+          fi
+          aws lambda update-function-code \
+            --function-name cht-companion-kb-enqueue \
+            --image-uri "${{ env.ECR_REGISTRY }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}-enqueue" \
+            --region "$AWS_REGION"

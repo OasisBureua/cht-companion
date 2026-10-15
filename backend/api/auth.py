@@ -1,13 +1,14 @@
-"""BFF → companion auth (SCRUM-195 §3). Placeholder until Secrets Manager is wired."""
+"""Inbound auth (SCRUM-195 §3): X-BFF-Auth shared secret and/or Cognito M2M tokens."""
 
 from __future__ import annotations
 
 import secrets
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from fastapi import Header, HTTPException, Request
 
-from api import config
+from api import config, m2m
 from api.schemas import ApiError, ApiErrorBody
 from api.ulid import new_ulid
 
@@ -61,6 +62,48 @@ def require_bff_auth(
         valid.append(previous)
     if not any(secrets.compare_digest(x_bff_auth, v) for v in valid):
         raise _unauthorized()
+
+
+def _bearer_token(authorization: str | None) -> str | None:
+    header = (authorization or "").strip()
+    if not header.lower().startswith("bearer "):
+        return None
+    return header[7:].strip() or None
+
+
+def require_scope(scope: str) -> Callable[..., None]:
+    """Route dependency for COMPANION_AUTH_MODE.
+
+    secret: X-BFF-Auth only. m2m: a Cognito access token carrying
+    `companion/<scope>`. either: the token when a Bearer header is sent (no
+    fallback if it is invalid), otherwise X-BFF-Auth.
+    """
+
+    def dependency(
+        request: Request,
+        authorization: str | None = Header(default=None, alias="Authorization"),
+        x_bff_auth: str | None = Header(default=None, alias="X-BFF-Auth"),
+    ) -> None:
+        mode = config.AUTH_MODE if config.AUTH_MODE in config.AUTH_MODES else "m2m"
+        token = _bearer_token(authorization) if mode != "secret" else None
+
+        if token is None:
+            if mode == "m2m":
+                raise _unauthorized("Missing bearer token")
+            require_bff_auth(x_bff_auth)
+            request.state.auth = "secret"
+            return
+
+        try:
+            payload = m2m.decode_access_token(token)
+        except m2m.InvalidToken:
+            raise _unauthorized("Invalid bearer token") from None
+        needed = m2m.full_scope(scope)
+        if needed not in m2m.token_scopes(payload):
+            raise _forbidden(f"Token lacks scope {needed}")
+        request.state.auth = f"m2m:{payload.get('client_id') or payload.get('sub') or 'unknown'}"
+
+    return dependency
 
 
 def caller_context(

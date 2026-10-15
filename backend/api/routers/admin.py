@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
 from api import admin_store
-from api.auth import CallerContext, caller_context, require_admin, require_bff_auth
+from api.auth import CallerContext, caller_context, require_admin, require_scope
 from api.schemas import (
     ApiError,
     ApiErrorBody,
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 def _admin_deps(
-    _auth: None = Depends(require_bff_auth),
+    _auth: None = Depends(require_scope("admin.manage")),
     ctx: CallerContext = Depends(caller_context),
 ) -> CallerContext:
     return require_admin(ctx)
