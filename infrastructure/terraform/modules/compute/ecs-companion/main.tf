@@ -55,7 +55,7 @@ resource "aws_ecs_task_definition" "companion" {
         }
       ]
 
-      environment = [
+      environment = concat([
         { name = "PORT", value = tostring(var.container_port) },
         { name = "AWS_REGION", value = var.aws_region },
         { name = "CHT_ENVIRONMENT", value = var.environment },
@@ -68,7 +68,10 @@ resource "aws_ecs_task_definition" "companion" {
         { name = "COMPANION_AUTH_MODE", value = "m2m" },
         { name = "COMPANION_M2M_ISSUER", value = var.m2m_issuer },
         { name = "COMPANION_M2M_RESOURCE", value = var.m2m_resource },
-      ]
+        ],
+        # Rate limits for /chat and /generate. Without it, prod fails closed (503).
+        var.redis_url != "" ? [{ name = "REDIS_URL", value = var.redis_url }] : [],
+      )
 
       secrets = [
         {
