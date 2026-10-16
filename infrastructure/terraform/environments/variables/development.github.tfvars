@@ -16,6 +16,10 @@ platform_backend_security_group_name = "cht-dev-backend-sg"
 platform_backend_security_group_ids  = ["sg-0363efdc457aa7341"]
 service_connect_namespace_name       = "cht-dev.local"
 
+# Platform Redis for /chat and /generate rate limits (db 1; the platform backend uses db 0).
+platform_redis_url                 = "redis://cht-dev-redis.nwaasy.ng.0001.use1.cache.amazonaws.com:6379/1"
+platform_redis_security_group_name = "cht-dev-redis-sg"
+
 # Inbound auth: cht-dev-users pool, Cognito M2M tokens only.
 cognito_user_pool_id = "us-east-1_J51gzfO0I"
 

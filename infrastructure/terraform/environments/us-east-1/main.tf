@@ -90,6 +90,25 @@ data "aws_security_group" "platform_backend" {
   name  = var.platform_backend_security_group_name
 }
 
+data "aws_security_group" "platform_redis" {
+  count  = var.platform_redis_security_group_name != "" ? 1 : 0
+  name   = var.platform_redis_security_group_name
+  vpc_id = local.vpc_id
+}
+
+# The platform stack owns this security group and grants access with separate
+# rule resources (no inline ingress), so its applies leave this rule in place.
+resource "aws_security_group_rule" "platform_redis_from_companion" {
+  count                    = var.platform_redis_security_group_name != "" ? 1 : 0
+  description              = "Redis from cht-companion (rate limits)"
+  type                     = "ingress"
+  from_port                = 6379
+  to_port                  = 6379
+  protocol                 = "tcp"
+  security_group_id        = data.aws_security_group.platform_redis[0].id
+  source_security_group_id = module.ecs_companion.security_group_id
+}
+
 resource "aws_kms_key" "companion" {
   description             = "KMS key for cht-companion ${var.environment}"
   deletion_window_in_days = local.is_prod ? 30 : 7
@@ -335,6 +354,7 @@ module "ecs_companion" {
   database_secret_arn                 = local.database_secret_arn
   m2m_issuer                          = local.companion_m2m_issuer
   m2m_resource                        = var.cognito_user_pool_id != "" ? aws_cognito_resource_server.companion[0].identifier : "companion"
+  redis_url                           = var.platform_redis_url
   task_cpu                            = var.companion_task_cpu
   task_memory                         = var.companion_task_memory
   desired_count                       = var.companion_desired_count

@@ -72,6 +72,12 @@ variable "m2m_issuer" {
   default     = ""
 }
 
+variable "redis_url" {
+  description = "Redis URL for /chat and /generate rate limits (REDIS_URL); empty leaves it unset"
+  type        = string
+  default     = ""
+}
+
 variable "m2m_resource" {
   description = "Cognito resource server identifier (token scopes are <id>/<scope>)"
   type        = string

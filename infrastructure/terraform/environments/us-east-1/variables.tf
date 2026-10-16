@@ -44,6 +44,18 @@ variable "ecs_cluster_arn" {
   default     = ""
 }
 
+variable "platform_redis_url" {
+  description = "Platform ElastiCache Redis URL for companion rate limits. Use db 1: the platform backend caches in db 0"
+  type        = string
+  default     = ""
+}
+
+variable "platform_redis_security_group_name" {
+  description = "Platform Redis security group; companion is allowed in on 6379 when set"
+  type        = string
+  default     = ""
+}
+
 variable "platform_backend_security_group_name" {
   description = "Platform NestJS backend security group name when IDs are not provided"
   type        = string
