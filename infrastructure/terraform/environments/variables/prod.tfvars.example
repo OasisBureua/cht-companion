@@ -9,6 +9,10 @@ ecs_cluster_name                       = "cht-platform-cluster"
 platform_backend_security_group_name   = "cht-platform-backend-sg"
 service_connect_namespace_name         = "cht.local"
 
+# Platform Redis for /chat and /generate rate limits (db 1; the platform backend uses db 0).
+platform_redis_url                 = "redis://cht-platform-redis.nwaasy.ng.0001.use1.cache.amazonaws.com:6379/1"
+platform_redis_security_group_name = "cht-platform-redis-sg"
+
 cognito_user_pool_id = "us-east-1_whXKKxAdX"
 
 companion_ecr_repository_name = "cht-companion"
