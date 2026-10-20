@@ -103,6 +103,7 @@ Same shape as `/chat`:
 | 400 | `validation` | Bad or empty body |
 | 401 | `unauthorized` | Missing or invalid `X-BFF-Auth` |
 | 429 | `rate_limited` | Too many `/generate` calls (`Retry-After` header set) |
+| 429 | `token_budget_exceeded` | Daily token budget used up (`RATE_LIMIT_GENERATE_TOKENS_PER_DAY`); `Retry-After` is midnight UTC |
 | 502 | `llm_timeout` | Bedrock call itself failed (throttling, timeout, malformed response) |
 | 503 | `internal` | Rate-limit store hard-down (prod only; dev fails open) |
 
@@ -143,6 +144,7 @@ Separate bucket from `/chat`'s per-user limits, keyed by caller identity rather 
 |---------|---------|-------|
 | `RATE_LIMIT_GENERATE_PER_MINUTE` | 5 | Report generation is bulk/background work, not an interactive chat turn. A runaway caller here burns real Bedrock spend fast given the larger `max_tokens` ceiling. |
 | `RATE_LIMIT_GENERATE_PER_DAY` | 200 | |
+| `RATE_LIMIT_GENERATE_TOKENS_PER_DAY` | 500000 | CPR-21. Organisation-wide, all callers: Bedrock input + output tokens per UTC day. Checked before each call (before the request counters, so a refused call doesn't use them up), added after it, so a run that starts under the cap finishes. Over the cap: 429 `token_budget_exceeded`, "The daily report generation budget (500,000 tokens) is used up. It resets at 00:00 UTC.", with `retry_after_ms` to midnight UTC. Key `tokenbudget:generate:day:{day}`. |
 
 Same fail-open(dev)/fail-closed(prod) policy as `/chat` when the Redis-backed rate-limit store is unreachable. Bucket key is the caller-supplied `X-Client` header; `bedrock.client.ts` sends `X-Client: cht-reports`.
 

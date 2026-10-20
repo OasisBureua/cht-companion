@@ -12,15 +12,26 @@ own app client), or X-BFF-Auth while COMPANION_AUTH_MODE allows it.
 
 from __future__ import annotations
 
+import json
+import logging
+
 from fastapi import APIRouter, Depends, Header, HTTPException
 from starlette.concurrency import run_in_threadpool
 
 from api.auth import require_scope
 from api.bedrock import GenerationError, generate_completion
 from api.config import API_VERSION
-from api.ratelimit import RateLimitExceeded, check_generate_rate_limit
+from api.ratelimit import (
+    RateLimitExceeded,
+    TokenBudgetExceeded,
+    check_generate_rate_limit,
+    check_generate_token_budget,
+    record_generate_tokens,
+)
 from api.schemas import ApiError, ApiErrorBody, GenerateRequest, GenerateResponse
 from api.ulid import new_ulid
+
+logger = logging.getLogger("cht-companion.generate")
 
 router = APIRouter(tags=["generate"])
 
@@ -28,12 +39,18 @@ _MAX_REQUEST_ID_LEN = 128
 
 
 def _rate_limited(exc: RateLimitExceeded) -> HTTPException:
+    if isinstance(exc, TokenBudgetExceeded):
+        code = "token_budget_exceeded"
+        message = f"The daily report generation budget ({exc.limit:,} tokens) is used up. It resets at 00:00 UTC."
+    else:
+        code = "rate_limited"
+        message = "Too many /generate requests; slow down."
     return HTTPException(
         status_code=429,
         detail=ApiError(
             error=ApiErrorBody(
-                code="rate_limited",
-                message="Too many /generate requests; slow down.",
+                code=code,
+                message=message,
                 retry_after_ms=exc.retry_after_ms,
             )
         ).model_dump(),
@@ -52,6 +69,9 @@ async def generate(
     request_id = (x_request_id or "").strip()[:_MAX_REQUEST_ID_LEN] or new_ulid()
 
     try:
+        # Budget first, so a call refused for budget doesn't use up the
+        # caller's request counters.
+        check_generate_token_budget()
         # Keyed by the caller-supplied X-Client header (same header /chat
         # already defines, just not required there). Falls back to a
         # shared "unknown-caller" bucket rather than failing the request if
@@ -86,5 +106,13 @@ async def generate(
                 error=ApiErrorBody(code="llm_timeout", message=str(exc))
             ).model_dump(),
         ) from exc
+
+    input_tokens, output_tokens = usage.get("input_tokens"), usage.get("output_tokens")
+    if input_tokens is None and output_tokens is None:
+        logger.warning(
+            "%s",
+            json.dumps({"event": "generate_token_usage_missing", "request_id": request_id}),
+        )
+    record_generate_tokens((input_tokens or 0) + (output_tokens or 0))
 
     return GenerateResponse(text=text, finish_reason=finish_reason, request_id=request_id, usage=usage)

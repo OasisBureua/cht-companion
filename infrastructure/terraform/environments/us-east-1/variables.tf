@@ -229,3 +229,27 @@ variable "kb_platform_catalog_url" {
   description = "cht-platform-tool public catalog API the enqueue Lambda reads (ContentHub is only reachable through it)"
   type        = string
 }
+
+# Bedrock budget (CPR-21). Account-wide: dev and prod share the account, so
+# only prod sets a budget.
+variable "bedrock_monthly_budget_usd" {
+  description = "Monthly Bedrock cost budget in USD, alerting at 80% of actual spend (0 = no budget)"
+  type        = number
+  default     = 0
+}
+
+# Anthropic models on Bedrock may bill under their own Marketplace service
+# names (e.g. "Claude Sonnet 4 (Amazon Bedrock Edition)") rather than
+# "Amazon Bedrock". Confirm the names in Cost Explorer (group by Service)
+# before relying on this filter, and add them here or in the tfvars.
+variable "bedrock_budget_services" {
+  description = "Cost Explorer SERVICE values the Bedrock budget counts"
+  type        = list(string)
+  default     = ["Amazon Bedrock"]
+}
+
+variable "budget_alert_emails" {
+  description = "Email addresses notified when the Bedrock budget alert fires"
+  type        = list(string)
+  default     = []
+}
