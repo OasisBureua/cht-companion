@@ -42,3 +42,7 @@ terraform plan -var-file=../variables/prod.github.tfvars
 ```
 
 State bucket `cht-companion-terraform-state` must exist before `terraform init`. Do not `apply` until ready to pave.
+
+## Bedrock budget (CPR-21)
+
+Prod's us-east-1 stack owns `cht-companion-bedrock-monthly`, an AWS Budgets cost budget on Bedrock spend: $100/month, email to `budget_alert_emails` when actual spend passes 80%. Dev and prod share the AWS account, so the one budget covers both; dev leaves `bedrock_monthly_budget_usd` at 0 (no budget). The filter counts the `bedrock_budget_services` Cost Explorer services (default `Amazon Bedrock`). Anthropic models may bill under their own names (e.g. `Claude Sonnet 4 (Amazon Bedrock Edition)`): confirm in Cost Explorer and add them. The deploy role needs the `BedrockBudget` statement in the deploy policy: run `aws-github-oidc-update-deploy-policy.sh` before the first prod apply.

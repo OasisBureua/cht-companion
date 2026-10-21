@@ -211,6 +211,21 @@
       "Resource": "*"
     },
     {
+      "Sid": "BedrockBudget",
+      "Effect": "Allow",
+      "Action": [
+        "budgets:ViewBudget",
+        "budgets:ModifyBudget",
+        "budgets:ListTagsForResource",
+        "budgets:TagResource",
+        "budgets:UntagResource"
+      ],
+      "Resource": [
+        "arn:aws:budgets::233636046512:budget/cht-dev-companion-*",
+        "arn:aws:budgets::233636046512:budget/cht-companion-*"
+      ]
+    },
+    {
       "Sid": "DeployLogsRead",
       "Effect": "Allow",
       "Action": [

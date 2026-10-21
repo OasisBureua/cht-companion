@@ -399,3 +399,39 @@ resource "aws_security_group_rule" "rds_from_kb_lambda" {
   source_security_group_id = module.kb_lambda.security_group_id
   description              = "PostgreSQL from KB Lambda"
 }
+
+# CPR-21: Bedrock spend alarm. Dev and prod share the AWS account, so one
+# account-wide budget covers both; only prod sets bedrock_monthly_budget_usd.
+resource "aws_budgets_budget" "bedrock_monthly" {
+  count = var.bedrock_monthly_budget_usd > 0 ? 1 : 0
+
+  name         = "${local.resource_prefix}-bedrock-monthly"
+  budget_type  = "COST"
+  limit_amount = tostring(var.bedrock_monthly_budget_usd)
+  limit_unit   = "USD"
+  time_unit    = "MONTHLY"
+
+  cost_filter {
+    name   = "Service"
+    values = var.bedrock_budget_services
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 80
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = var.budget_alert_emails
+  }
+
+  tags = {
+    Name = "${local.resource_prefix}-bedrock-monthly"
+  }
+
+  lifecycle {
+    precondition {
+      condition     = length(var.budget_alert_emails) > 0
+      error_message = "budget_alert_emails must list at least one address when bedrock_monthly_budget_usd > 0."
+    }
+  }
+}

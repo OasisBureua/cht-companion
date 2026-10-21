@@ -49,3 +49,12 @@ companion_enable_scheduled_scaling = false
 
 kb_schedule_expression  = "rate(1 day)"
 kb_platform_catalog_url = "https://app.communityhealth.media/api/catalog"
+
+# Bedrock budget (CPR-21): account-wide, so prod only (dev shares the account).
+# Confirm bedrock_budget_services in Cost Explorer: Anthropic models may bill as
+# "Claude ... (Amazon Bedrock Edition)" rather than "Amazon Bedrock".
+bedrock_monthly_budget_usd = 100
+budget_alert_emails = [
+  "sebastien@communityhealth.media",
+  "uchenna@communityhealth.media",
+]
